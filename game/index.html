@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="description" content="DECEIVED — The social intelligence game. Can you spot the lie?"/>
+<meta property="og:title" content="DECEIVED — What's your Deception IQ?"/>
+<meta property="og:description" content="5 scenarios. Lies, body language, AI impostors. Play free."/>
+<meta property="og:image" content="/public/og-image.png"/>
+<meta property="og:url" content="https://playdeceived.com/play"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="theme-color" content="#0A0C12"/>
+<title>DECEIVED — Play</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+
+<!-- React + Babel via CDN — no build step needed -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body, #root { min-height: 100%; background: #0A0C12; }
+  body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+  /* Loading screen */
+  #loader {
+    position: fixed; inset: 0; background: #0A0C12;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 9999; transition: opacity 0.4s;
+  }
+  #loader h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 72px; color: #F0F2F8; letter-spacing: 4px; margin-bottom: 24px;
+  }
+  .loader-bar {
+    width: 200px; height: 3px; background: #1E2235; border-radius: 2px; overflow: hidden;
+  }
+  .loader-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #00D4AA, #E8A030, #E83050);
+    border-radius: 2px;
+    animation: loadfill 1.2s ease forwards;
+  }
+  @keyframes loadfill { to { width: 100%; } }
+  .loader-text {
+    margin-top: 14px; font-size: 11px; letter-spacing: 3px;
+    color: #6B7280; font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<!-- Loading screen -->
+<div id="loader">
+  <h1>DECEIVED</h1>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+  <div class="loader-text">CALIBRATING LIE DETECTOR</div>
+</div>
+
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ── Design tokens ──────────────────────────────────────────────
+const C = {
+  bg:"#0A0C12",panel:"#11141E",border:"#1E2235",
+  amber:"#E8A030",teal:"#00D4AA",red:"#E83050",
+  white:"#F0F2F8",muted:"#6B7280",cardBg:"#161A28",
+  gold:"#FFD700",silver:"#C0C0C0",bronze:"#CD7F32",purple:"#7C3AED",
+};
+const P_COLORS = ["#E8A030","#00D4AA"];
+
+const STATIC_SCENARIOS = [
+  { id:1,type:"WHO_IS_LYING",title:"The Alibi",
+    setup:"A valuable watch goes missing from an office. Three coworkers were present.",
+    statements:[
+      {name:"Marcus",text:"I was in the break room the entire time. Sarah can confirm — we were talking about the Henderson project."},
+      {name:"Sarah",text:"I was at my desk all morning. I didn't leave once. I had my headphones in."},
+      {name:"Devon",text:"I stepped out for a client call around 10. Came back maybe 20 minutes later. The watch was already gone by then."},
+    ],clue:"The Henderson project meeting was scheduled for the afternoon, not the morning.",
+    liar:"Marcus",explanation:"Marcus claimed Sarah confirmed his alibi — but the Henderson project meeting was in the afternoon. Devon's timeline checks out."},
+  { id:2,type:"AI_OR_HUMAN",title:"Grief Message",
+    setup:"One post in a grief support group was written by an AI pretending to mourn. Which one?",
+    statements:[
+      {name:"Post A",text:"It's been four months and I still reach for my phone to call her. I got to the 'M' in her name in my contacts before I remembered."},
+      {name:"Post B",text:"Losing a parent is one of life's most profound transitions. I navigate a complex tapestry of emotions — sadness, gratitude, and growth."},
+    ],clue:"Authentic grief is specific. It lives in small, embarrassing, particular moments.",
+    liar:"Post B",explanation:"Post B uses generic elevated language. Post A has the painfully specific detail of reaching the 'M' in contacts. That's human."},
+  { id:3,type:"BODY_LANGUAGE",title:"The Interview",
+    setup:"A candidate is being interviewed. Is she hiding something about why she left her last job?",
+    statements:[
+      {name:"Observation 1",text:"She smiled before answering — but the smile faded before she finished her first sentence."},
+      {name:"Observation 2",text:"She leaned forward describing new goals, but leaned back when referencing her former manager."},
+      {name:"Observation 3",text:"She said 'I felt it was time for a new challenge' while touching her collarbone and breaking eye contact for exactly one second."},
+    ],clue:"The body leaks truth in clusters, not isolated signals.",
+    liar:"She is hiding something",explanation:"Vanishing smile, postural retreat, and self-touch with gaze aversion — three simultaneous cluster signals. Something happened with that manager."},
+  { id:4,type:"CONSPIRACY_OR_FACT",title:"Strange but True?",
+    setup:"One claim is a documented historical fact. The other is fabricated. Which is real?",
+    statements:[
+      {name:"Claim A",text:"The CIA ran MKUltra — testing LSD and mind-control techniques on unwitting US citizens for over a decade."},
+      {name:"Claim B",text:"The US government seeded clouds over the Pacific Northwest in the 1970s to suppress voter turnout by causing rain on election days."},
+    ],clue:"Real conspiracies leave paper trails someone eventually finds.",
+    liar:"Claim B",explanation:"MKUltra is documented in declassified CIA files from 1977. Cloud seeding for electoral suppression has no evidence trail."},
+  { id:5,type:"WHO_IS_LYING",title:"The Last Text",
+    setup:"A woman says she never received a threatening text. Records show it was opened. Three people had access to a spoofed number.",
+    statements:[
+      {name:"Ryan",text:"I was traveling that weekend. I have boarding passes and hotel receipts. I didn't even know she had a new number."},
+      {name:"Claire",text:"We hadn't spoken in weeks. I have no reason to threaten her. Why would I risk everything?"},
+      {name:"James",text:"I'll be honest — I was angry that week. But I didn't send anything. I just didn't. I know how this looks."},
+    ],clue:"'I know how this looks' is preemptive defense — it assumes guilt before being accused.",
+    liar:"James",explanation:"Ryan has alibi evidence. Claire denies motive directly. James volunteers that he looks guilty — something innocent people rarely do."},
+];
+
+const CONFIDENCE_LABELS = ["Just guessing","Leaning this way","Pretty sure","Certain","Stake my life on it"];
+const TRASH = ["You're so gullible 😂","I saw that coming 🙄","That was a pure guess","My grandma would've got that","Touch grass, you're cooked 🔥","I read you like a book 📖","Lucky guess. Don't celebrate.","GG easy 😤"];
+const LB_KEY = "deceived-leaderboard-v1";
+
+function loadLeaderboard(){try{return JSON.parse(localStorage.getItem(LB_KEY)||"[]");}catch{return[];}}
+function saveToLeaderboard(e){try{const b=[...loadLeaderboard(),e].sort((a,b)=>b.diq-a.diq).slice(0,50);localStorage.setItem(LB_KEY,JSON.stringify(b));return b;}catch{return[];}}
+
+function usePeerJS(){
+  const [loaded,setLoaded]=useState(!!window.Peer);
+  useEffect(()=>{
+    if(window.Peer){setLoaded(true);return;}
+    const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js";
+    s.onload=()=>setLoaded(true);
+    document.head.appendChild(s);
+  },[]);
+  return loaded;
+}
+function makeCode(){return Array.from({length:4},()=>"ABCDEFGHJKLMNPQRSTUVWXYZ"[Math.floor(Math.random()*23)]).join("");}
+
+// ── Sound Engine ──────────────────────────────────────────────
+function useSoundEngine(soundOn){
+  const ctxRef=useRef(null),masterRef=useRef(null),tGainRef=useRef(null),oscsRef=useRef([]);
+  const getCtx=useCallback(()=>{
+    if(!ctxRef.current)ctxRef.current=new(window.AudioContext||window.webkitAudioContext)();
+    if(ctxRef.current.state==="suspended")ctxRef.current.resume();
+    return ctxRef.current;
+  },[]);
+  useEffect(()=>{if(ctxRef.current&&masterRef.current)masterRef.current.gain.setTargetAtTime(soundOn?1:0,ctxRef.current.currentTime,0.3);},[soundOn]);
+  const startAmbient=useCallback(()=>{
+    const ctx=getCtx();if(masterRef.current)return;
+    const m=ctx.createGain();m.gain.value=soundOn?1:0;m.connect(ctx.destination);masterRef.current=m;
+    const tg=ctx.createGain();tg.gain.value=0.03;tg.connect(m);tGainRef.current=tg;
+    [38,42,55,57].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type=i<2?"sine":"triangle";o.frequency.value=f;g.gain.value=i<2?0.6:0.25;o.connect(g);g.connect(tg);o.start();oscsRef.current.push(o);});
+  },[soundOn,getCtx]);
+  const stopAmbient=useCallback(()=>{oscsRef.current.forEach(o=>{try{o.stop();}catch{}});oscsRef.current=[];try{masterRef.current?.disconnect();}catch{};masterRef.current=null;},[]);
+  const setTension=useCallback((l)=>{if(!tGainRef.current||!ctxRef.current)return;tGainRef.current.gain.setTargetAtTime(0.03+0.25*l,ctxRef.current.currentTime,1.5);},[]);
+  const resetTension=useCallback(()=>setTension(0),[setTension]);
+  const _beep=useCallback((freq,vol,dur,type="sine")=>{if(!soundOn)return;const ctx=getCtx(),o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(vol,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);o.connect(g);g.connect(masterRef.current||ctx.destination);o.start();o.stop(ctx.currentTime+dur);},[soundOn,getCtx]);
+  const playTick=useCallback(()=>_beep(1200,0.08,0.06),[_beep]);
+  const playLockIn=useCallback(()=>{if(!soundOn)return;const ctx=getCtx(),buf=ctx.createBuffer(1,ctx.sampleRate*0.3,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(ctx.sampleRate*0.05));const s=ctx.createBufferSource(),g=ctx.createGain();s.buffer=buf;g.gain.value=0.5;s.connect(g);g.connect(masterRef.current||ctx.destination);s.start();if(tGainRef.current)tGainRef.current.gain.setTargetAtTime(0.01,ctx.currentTime+0.05,0.2);},[soundOn,getCtx]);
+  const playReveal=useCallback((ok)=>{if(!soundOn)return;const ctx=getCtx(),dest=masterRef.current||ctx.destination;(ok?[523,659,784]:[220,196,165]).forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime+i*(ok?0.12:0.15);o.type=ok?"sine":"sawtooth";o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.18,t+0.05);g.gain.exponentialRampToValueAtTime(0.001,t+0.55);o.connect(g);g.connect(dest);o.start(t);o.stop(t+0.6);});},[soundOn,getCtx]);
+  const playProfileReveal=useCallback(()=>{if(!soundOn)return;const ctx=getCtx(),dest=masterRef.current||ctx.destination,o=ctx.createOscillator(),g=ctx.createGain(),f=ctx.createBiquadFilter();f.type="bandpass";f.frequency.value=400;f.Q.value=2;o.type="sawtooth";o.frequency.setValueAtTime(80,ctx.currentTime);o.frequency.linearRampToValueAtTime(320,ctx.currentTime+1.8);g.gain.setValueAtTime(0,ctx.currentTime);g.gain.linearRampToValueAtTime(0.3,ctx.currentTime+0.3);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+2.2);o.connect(f);f.connect(g);g.connect(dest);o.start();o.stop(ctx.currentTime+2.2);},[soundOn,getCtx]);
+  const playLeaderboardEntry=useCallback(()=>{if(!soundOn)return;const ctx=getCtx(),dest=masterRef.current||ctx.destination;[392,523,659,784,1047].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime+i*0.09;o.type="sine";o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.15,t+0.03);g.gain.exponentialRampToValueAtTime(0.001,t+0.35);o.connect(g);g.connect(dest);o.start(t);o.stop(t+0.35);});},[soundOn,getCtx]);
+  const playCountdownTick=useCallback((s)=>{if(!soundOn)return;const u=Math.max(0,1-s/10);_beep(440+u*400,0.04+u*0.08,0.08,"square");},[soundOn,_beep]);
+  const playTimeUp=useCallback(()=>{if(!soundOn)return;const ctx=getCtx(),dest=masterRef.current||ctx.destination;[880,660,440,220].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime+i*0.1;o.type="sawtooth";o.frequency.value=f;g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);o.connect(g);g.connect(dest);o.start(t);o.stop(t+0.25);});},[soundOn,getCtx]);
+  return{startAmbient,stopAmbient,setTension,resetTension,playTick,playLockIn,playReveal,playProfileReveal,playLeaderboardEntry,playCountdownTick,playTimeUp};
+}
+
+function buildProfile(results){
+  const correct=results.filter(r=>r.correct).length;
+  const overconf=results.filter(r=>!r.correct&&r.confidence>=3).length;
+  const underconf=results.filter(r=>r.correct&&r.confidence<=1).length;
+  const iq=Math.min(100,Math.max(20,Math.round((correct/results.length)*100-overconf*8+underconf*3)+40));
+  let archetype,description,blindspot;
+  if(iq>=85){archetype="The Interrogator";description="You read people like open books. You catch micro-signals others miss entirely.";blindspot="You trust your gut so much you sometimes ignore contradicting evidence.";}
+  else if(iq>=70){archetype="The Detective";description="Methodical and sharp. You look for inconsistencies before making a call.";blindspot="Emotional manipulation occasionally slips past your logic-first radar.";}
+  else if(iq>=55){archetype="The Analyst";description="You notice patterns but hesitate to commit. Your instincts are good — trust them more.";blindspot="Overthinking under pressure leads you to second-guess correct first reads.";}
+  else{archetype="The Empath";description="You want to believe people — which makes you unusually good at detecting real distress.";blindspot="Skilled liars who appeal to emotion consistently get past your defenses.";}
+  return{iq,archetype,description,blindspot,correct,total:results.length};
+}
+
+const ALL_TYPES=["WHO_IS_LYING","AI_OR_HUMAN","BODY_LANGUAGE","CONSPIRACY_OR_FACT"];
+async function generateAIScenario(roundNum,results=[],scenarios=[]){
+  const stats={};ALL_TYPES.forEach(t=>{stats[t]={attempts:0,wrong:0};});
+  results.forEach(r=>{const sc=scenarios[r.round];if(!sc)return;stats[sc.type].attempts++;if(!r.correct)stats[sc.type].wrong++;});
+  const scored=ALL_TYPES.map(t=>{const s=stats[t];return{type:t,score:s.attempts>0?s.wrong/s.attempts:0,attempts:s.attempts};});
+  const unexplored=scored.filter(s=>s.attempts===0),explored=scored.filter(s=>s.attempts>0).sort((a,b)=>b.score-a.score);
+  const t=(explored.length>0&&(unexplored.length===0||Math.random()>0.3)?explored[0]:unexplored[Math.floor(Math.random()*unexplored.length)])?.type||ALL_TYPES[roundNum%4];
+  const d=results.length<2?"medium":results.slice(-3).filter(r=>r.correct).length>=3?"hard":results.slice(-3).filter(r=>r.correct).length===0?"easy":"medium";
+  try{
+    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1200,messages:[{role:"user",content:`Generate a DECEIVED game scenario. Type: ${t}. Difficulty: ${d}. Return ONLY valid JSON: {"id":${roundNum+10},"type":"${t}","difficulty":"${d}","title":"short title","setup":"2-3 sentence setup","statements":[{"name":"label","text":"statement"},{"name":"label","text":"statement"}],"clue":"psychological hint","liar":"exact answer label","explanation":"2-3 sentence reveal"}. BODY_LANGUAGE needs 3 observations and liar="She is hiding something". Make it psychologically rich.`}]})});
+    const data=await res.json(),text=data.content?.find(b=>b.type==="text")?.text||"";
+    return JSON.parse(text.replace(/```json|```/g,"").trim());
+  }catch{return null;}
+}
+
+// ── UI Components ─────────────────────────────────────────────
+function TypeBadge({type}){
+  const map={WHO_IS_LYING:["👁 DECEPTION",C.red],AI_OR_HUMAN:["🤖 AI vs HUMAN",C.teal],BODY_LANGUAGE:["🧠 BEHAVIOR",C.amber],CONSPIRACY_OR_FACT:["🔍 TRUTH CHECK",C.purple]};
+  const[label,color]=map[type]||["❓",C.muted];
+  return React.createElement("span",{style:{fontSize:10,fontWeight:700,letterSpacing:2,color,border:`1px solid ${color}`,borderRadius:3,padding:"3px 8px"}},label);
+}
+function SoundToggle({on,onToggle}){
+  return React.createElement("button",{onClick:onToggle,style:{background:"none",border:`1px solid ${C.border}`,borderRadius:6,color:on?C.amber:C.muted,fontSize:16,cursor:"pointer",padding:"6px 10px",lineHeight:1}},on?"🔊":"🔇");
+}
+function PulseBar({confidence,active}){
+  return React.createElement("div",{style:{display:"flex",gap:3,alignItems:"center",height:32}},
+    Array.from({length:20}).map((_,i)=>{
+      const lit=active&&(i/20)*4<=confidence,color=i<7?C.teal:i<14?C.amber:C.red;
+      return React.createElement("div",{key:i,style:{width:6,height:lit?16+Math.sin(i*0.8)*8:6,borderRadius:2,background:lit?color:C.border,transition:"height 0.12s ease",opacity:lit?1:0.3}});
+    })
+  );
+}
+
+// Share Card
+function ShareCard({profile,results,playerName,onClose}){
+  const cvRef=useRef(null);
+  const iqColor=profile.iq>=80?C.teal:profile.iq>=60?C.amber:C.red;
+  const icons={"The Interrogator":"🔦","The Detective":"🔍","The Analyst":"📊","The Empath":"🫀"};
+  useEffect(()=>{
+    const cv=cvRef.current;if(!cv)return;
+    const ctx=cv.getContext("2d");const W=540,H=960;cv.width=W;cv.height=H;
+    ctx.fillStyle=C.bg;ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle=C.border;ctx.lineWidth=1;
+    for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    const gr=ctx.createLinearGradient(0,0,W,0);gr.addColorStop(0,C.teal);gr.addColorStop(0.5,C.amber);gr.addColorStop(1,C.red);
+    ctx.fillStyle=gr;ctx.fillRect(0,0,W,5);
+    ctx.fillStyle=C.white;ctx.font="bold 72px Impact,sans-serif";ctx.textAlign="center";ctx.fillText("DECEIVED",W/2,110);
+    ctx.fillStyle=C.muted;ctx.font="600 13px Arial";ctx.fillText("SOCIAL INTELLIGENCE GAME",W/2,138);
+    ctx.fillStyle=C.amber;ctx.fillRect(W/2-30,158,60,3);
+    const cx=W/2,cy=310,r=100;
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle=iqColor+"18";ctx.fill();
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.strokeStyle=iqColor;ctx.lineWidth=6;ctx.stroke();
+    ctx.shadowColor=iqColor;ctx.shadowBlur=30;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.strokeStyle=iqColor+"40";ctx.lineWidth=2;ctx.stroke();ctx.shadowBlur=0;
+    ctx.fillStyle=iqColor;ctx.font="bold 80px Impact";ctx.fillText(profile.iq,cx,cy+22);
+    ctx.fillStyle=C.muted;ctx.font="700 11px Arial";ctx.fillText("DECEPTION IQ",cx,cy+48);
+    ctx.fillStyle=C.white;ctx.font="bold 44px Impact";ctx.fillText((icons[profile.archetype]||"")+" "+profile.archetype.toUpperCase(),cx,460);
+    if(playerName){ctx.fillStyle=C.muted;ctx.font="500 18px Arial";ctx.fillText(playerName,cx,492);}
+    const sY=545,items=[{l:"CORRECT",v:`${profile.correct}/${profile.total}`},{l:"ACCURACY",v:`${Math.round(profile.correct/profile.total*100)}%`},{l:"ROUNDS",v:profile.total}];
+    const cW=W/items.length;
+    items.forEach((s,i)=>{const x=cW*i+cW/2;ctx.fillStyle=C.cardBg;ctx.fillRect(cW*i+16,sY-34,cW-32,72);ctx.fillStyle=iqColor;ctx.font="bold 32px Impact";ctx.fillText(s.v,x,sY+4);ctx.fillStyle=C.muted;ctx.font="700 10px Arial";ctx.fillText(s.l,x,sY+24);});
+    ctx.fillStyle=C.muted;ctx.font="700 10px Arial";ctx.fillText("ROUND BREAKDOWN",cx,660);
+    results.forEach((r,i)=>{const dx=W/2-((results.length-1)*36)/2+i*36,dy=688;ctx.beginPath();ctx.arc(dx,dy,14,0,Math.PI*2);ctx.fillStyle=r.correct?C.teal+"22":C.red+"22";ctx.fill();ctx.beginPath();ctx.arc(dx,dy,14,0,Math.PI*2);ctx.strokeStyle=r.correct?C.teal:C.red;ctx.lineWidth=2;ctx.stroke();ctx.fillStyle=r.correct?C.teal:C.red;ctx.font="bold 14px Arial";ctx.fillText(r.correct?"✓":"✗",dx,dy+5);});
+    ctx.fillStyle=C.muted;ctx.font="400 14px Arial";
+    const words=profile.description.split(" ");let line="",ly=745;
+    words.forEach(w=>{const test=line+w+" ";if(ctx.measureText(test).width>W-80&&line){ctx.fillText(line.trim(),cx,ly);line=w+" ";ly+=22;}else line=test;});ctx.fillText(line.trim(),cx,ly);
+    ctx.fillStyle=C.panel;ctx.fillRect(0,H-130,W,130);ctx.fillStyle=gr;ctx.fillRect(0,H-130,W,2);
+    ctx.fillStyle=C.amber;ctx.font="bold 26px Impact";ctx.fillText("CAN YOU SEE THROUGH THE LIE?",cx,H-85);
+    ctx.fillStyle=C.muted;ctx.font="500 13px Arial";ctx.fillText("Play free at playdeceived.com",cx,H-55);
+    ctx.fillStyle=C.white;ctx.font="700 11px Arial";ctx.fillText(`#Deceived  #DeceptionIQ  #${profile.archetype.replace(/ /g,"")}`,cx,H-28);
+  },[]);
+  function dl(){const a=document.createElement("a");a.download=`deceived-${profile.archetype.replace(/ /g,"-").toLowerCase()}.png`;a.href=cvRef.current.toDataURL("image/png");a.click();}
+  return React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:200,padding:20,overflowY:"auto"}},
+    React.createElement("div",{style:{maxWidth:380,width:"100%",textAlign:"center"}},
+      React.createElement("div",{style:{fontSize:11,letterSpacing:3,color:C.teal,fontWeight:700,marginBottom:14}},"YOUR SHARE CARD"),
+      React.createElement("div",{style:{borderRadius:10,overflow:"hidden",marginBottom:16,border:`1px solid ${C.border}`}},
+        React.createElement("canvas",{ref:cvRef,style:{width:"100%",display:"block"}})),
+      React.createElement("p",{style:{color:C.muted,fontSize:13,marginBottom:16,lineHeight:1.6}},
+        "Download and post to TikTok, Instagram, or X. Tag ",
+        React.createElement("span",{style:{color:C.white}},`#${profile.archetype.replace(/ /g,"")}`)),
+      React.createElement("div",{style:{display:"flex",gap:10,justifyContent:"center"}},
+        React.createElement("button",{onClick:dl,style:{background:C.amber,color:C.bg,border:"none",borderRadius:6,padding:"13px 24px",fontSize:14,fontWeight:800,letterSpacing:2,cursor:"pointer",fontFamily:"'Bebas Neue',Impact,sans-serif"}},"⬇ DOWNLOAD"),
+        React.createElement("button",{onClick:onClose,style:{background:"none",border:`1px solid ${C.border}`,borderRadius:6,padding:"13px 16px",color:C.muted,fontSize:13,cursor:"pointer"}},"Close"))));
+}
+
+// Leaderboard
+function LeaderboardScreen({onBack,highlightEntry}){
+  const[board,setBoard]=useState([]);
+  useEffect(()=>setBoard(loadLeaderboard()),[]);
+  const medals=[C.gold,C.silver,C.bronze];
+  const aI={"The Interrogator":"🔦","The Detective":"🔍","The Analyst":"📊","The Empath":"🫀"};
+  const s=(style)=>style;
+  return React.createElement("div",{style:{minHeight:"100vh",background:C.bg,padding:"32px 20px 80px",fontFamily:"Inter,sans-serif"}},
+    React.createElement("div",{style:{maxWidth:560,margin:"0 auto"}},
+      React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:28}},
+        React.createElement("button",{onClick:onBack,style:{background:"none",border:`1px solid ${C.border}`,borderRadius:6,color:C.muted,fontSize:13,cursor:"pointer",padding:"8px 14px"}},"← BACK"),
+        React.createElement("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:28,color:C.white,letterSpacing:3}},"LEADERBOARD"),
+        React.createElement("div",{style:{width:80}})),
+      React.createElement("div",{style:{fontSize:11,letterSpacing:3,color:C.muted,textAlign:"center",marginBottom:20,fontWeight:700}},"TOP DECEPTION HUNTERS · ALL TIME"),
+      board.length===0
+        ? React.createElement("div",{style:{textAlign:"center",padding:"60px 20px"}},
+            React.createElement("div",{style:{fontSize:48,marginBottom:16}},"🕵️"),
+            React.createElement("div",{style:{color:C.muted,fontSize:15}},"No scores yet. Be the first."))
+        : React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:8}},
+            board.map((entry,i)=>{
+              const isMe=highlightEntry&&entry.name===highlightEntry.name&&entry.date===highlightEntry.date;
+              const rc=i<3?medals[i]:C.muted;
+              return React.createElement("div",{key:i,style:{background:isMe?`${C.amber}18`:C.cardBg,border:`1.5px solid ${isMe?C.amber:i<3?medals[i]+"40":C.border}`,borderRadius:8,padding:"16px 20px",display:"flex",alignItems:"center",gap:14}},
+                React.createElement("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:22,color:rc,minWidth:32,textAlign:"center"}},i<3?["🥇","🥈","🥉"][i]:`#${i+1}`),
+                React.createElement("div",{style:{flex:1,minWidth:0}},
+                  React.createElement("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:4}},
+                    React.createElement("span",{style:{color:C.white,fontWeight:700,fontSize:15,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},entry.name),
+                    isMe&&React.createElement("span",{style:{fontSize:10,color:C.amber,fontWeight:700,letterSpacing:1,border:`1px solid ${C.amber}`,borderRadius:3,padding:"1px 5px"}},"YOU")),
+                  React.createElement("div",{style:{display:"flex",gap:10,fontSize:12,color:C.muted}},
+                    React.createElement("span",null,(aI[entry.archetype]||"🧠")+" "+entry.archetype),
+                    React.createElement("span",null,"·"),
+                    React.createElement("span",null,`${entry.correct}/${entry.total}`),
+                    React.createElement("span",null,"·"),
+                    React.createElement("span",null,new Date(entry.date).toLocaleDateString()))),
+                React.createElement("div",{style:{textAlign:"right"}},
+                  React.createElement("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:28,color:entry.diq>=80?C.teal:entry.diq>=60?C.amber:C.red,lineHeight:1}},entry.diq),
+                  React.createElement("div",{style:{fontSize:9,letterSpacing:1,color:C.muted,fontWeight:700}},"DIQ")));
+            })),
+      React.createElement("div",{style:{marginTop:28,textAlign:"center"}},
+        React.createElement("button",{onClick:onBack,style:{background:C.amber,color:C.bg,border:"none",borderRadius:6,padding:"14px 40px",fontSize:15,fontWeight:800,letterSpacing:2,cursor:"pointer",fontFamily:"'Bebas Neue',Impact,sans-serif"}},"PLAY AGAIN"))));
+}
+
+// Name Entry
+function NameEntryModal({profile,onSubmit,onSkip}){
+  const[name,setName]=useState("");const inputRef=useRef(null);
+  useEffect(()=>{setTimeout(()=>inputRef.current?.focus(),100);},[]);
+  const iqColor=profile.iq>=80?C.teal:profile.iq>=60?C.amber:C.red;
+  return React.createElement("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:20}},
+    React.createElement("div",{style:{background:C.panel,border:`1px solid ${C.border}`,borderRadius:12,padding:"36px 28px",maxWidth:400,width:"100%",textAlign:"center"}},
+      React.createElement("div",{style:{width:100,height:100,borderRadius:"50%",border:`4px solid ${iqColor}`,margin:"0 auto 20px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:`${iqColor}10`}},
+        React.createElement("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:42,color:iqColor,lineHeight:1}},profile.iq),
+        React.createElement("div",{style:{fontSize:9,letterSpacing:1,color:C.muted,fontWeight:700}},"DIQ")),
+      React.createElement("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:28,color:C.white,letterSpacing:2,marginBottom:6}},profile.archetype),
+      React.createElement("div",{style:{color:C.muted,fontSize:13,marginBottom:24}},`${profile.correct} of ${profile.total} correct — post to the board?`),
+      React.createElement("input",{ref:inputRef,value:name,onChange:e=>setName(e.target.value.slice(0,20)),onKeyDown:e=>e.key==="Enter"&&name.trim()&&onSubmit(name.trim()),placeholder:"Your name or alias...",maxLength:20,style:{width:"100%",background:C.bg,border:`1.5px solid ${C.border}`,borderRadius:6,color:C.white,fontSize:16,padding:"12px 14px",outline:"none",fontFamily:"Inter,sans-serif",boxSizing:"border-box",marginBottom:14},onFocus:e=>e.target.style.borderColor=C.amber,onBlur:e=>e.target.style.borderColor=C.border}),
+      React.createElement("div",{style:{display:"flex",gap:10}},
+        React.createElement("button",{onClick:()=>name.trim()&&onSubmit(name.trim()),disabled:!name.trim(),style:{flex:1,background:name.trim()?C.amber:C.border,color:name.trim()?C.bg:C.muted,border:"none",borderRadius:6,padding:"13px",fontSize:14,fontWeight:800,letterSpacing:1,cursor:name.trim()?"pointer":"not-allowed",fontFamily:"'Bebas Neue',Impact,sans-serif"}},"POST SCORE"),
+        React.createElement("button",{onClick:onSkip,style:{background:"none",border:`1px solid ${C.border}`,borderRadius:6,padding:"13px 16px",color:C.muted,fontSize:13,cursor:"pointer"}},"Skip")),
+      React.createElement("div",{style:{marginTop:12,fontSize:11,color:C.muted}},"Scores saved locally on this device")));
+}
+
+// ── MAIN APP ──────────────────────────────────────────────────
+function App(){
+  const peerReady=usePeerJS();
+  const[appMode,setAppMode]=useState("home");
+  const[screen,setScreen]=useState("intro");
+  const[scenarios,setScenarios]=useState(STATIC_SCENARIOS);
+  const[round,setRound]=useState(0);
+  const[selected,setSelected]=useState(null);
+  const[confidence,setConfidence]=useState(2);
+  const[submitted,setSubmitted]=useState(false);
+  const[results,setResults]=useState([]);
+  const[showClue,setShowClue]=useState(false);
+  const[profile,setProfile]=useState(null);
+  const[revealAnim,setRevealAnim]=useState(false);
+  const[soundOn,setSoundOn]=useState(true);
+  const[tension,setTensionState]=useState(0);
+  const[interactionCount,setInteractionCount]=useState(0);
+  const[showNameEntry,setShowNameEntry]=useState(false);
+  const[lastEntry,setLastEntry]=useState(null);
+  const[showShareCard,setShowShareCard]=useState(false);
+  const[timedMode,setTimedMode]=useState(false);
+  const[timeLeft,setTimeLeft]=useState(30);
+  const[timeExpired,setTimeExpired]=useState(false);
+  const[streak,setStreak]=useState(0);
+  const[bonusPoints,setBonusPoints]=useState(0);
+  const[showBonus,setShowBonus]=useState(null);
+  const[multiMode,setMultiMode]=useState(false);
+  const[playerNames,setPlayerNames]=useState(["Player 1","Player 2"]);
+  const[currentPlayer,setCurrentPlayer]=useState(0);
+  const[p1Results,setP1Results]=useState([]);
+  const[p2Results,setP2Results]=useState([]);
+  const[waitingPass,setWaitingPass]=useState(false);
+  const[chatOpen,setChatOpen]=useState(false);
+  const[chatMessages,setChatMessages]=useState([]);
+  const clockRef=useRef(null);
+  const tensionTimerRef=useRef(null);
+  const tensionValueRef=useRef(0);
+  // Online state
+  const[onlinePhase,setOnlinePhase]=useState("lobby");
+  const[myOnlineName,setMyOnlineName]=useState("");
+  const[opponentName,setOpponentName]=useState("");
+  const[isHost,setIsHost]=useState(false);
+  const[roomCode,setRoomCode]=useState("");
+  const[onlineError,setOnlineError]=useState("");
+  const[onlineRound,setOnlineRound]=useState(0);
+  const[myOnlineResults,setMyOnlineResults]=useState([]);
+  const[oppOnlineResults,setOppOnlineResults]=useState([]);
+  const[opponentAnswered,setOpponentAnswered]=useState(false);
+  const[opponentResult,setOpponentResult]=useState(null);
+  const[onlineChat,setOnlineChat]=useState([]);
+  const[myOnlineSubmission,setMyOnlineSubmission]=useState(null);
+  const peerRef=useRef(null);
+  const connRef=useRef(null);
+  const ONLINE_ROUNDS=STATIC_SCENARIOS.length;
+
+  const sound=useSoundEngine(soundOn);
+  const scenario=scenarios[round];
+  const totalRounds=scenarios.length;
+
+  useEffect(()=>{if(screen==="game")sound.startAmbient();},[screen]);
+  useEffect(()=>{
+    if(screen!=="game"||submitted)return;
+    if(tensionTimerRef.current)clearInterval(tensionTimerRef.current);
+    tensionValueRef.current=0;setTensionState(0);sound.resetTension();
+    tensionTimerRef.current=setInterval(()=>{tensionValueRef.current=Math.min(1,tensionValueRef.current+0.012);setTensionState(tensionValueRef.current);sound.setTension(tensionValueRef.current);},700);
+    return()=>clearInterval(tensionTimerRef.current);
+  },[round,screen,submitted]);
+  useEffect(()=>{if(interactionCount===0)return;tensionValueRef.current=Math.min(1,tensionValueRef.current+0.07);setTensionState(tensionValueRef.current);sound.setTension(tensionValueRef.current);},[interactionCount]);
+  useEffect(()=>{if(round>=3)generateAIScenario(round+1,results,scenarios).then(s=>{if(s)setScenarios(p=>[...p,s]);});},[round,submitted]);
+  useEffect(()=>{
+    if(!timedMode||screen!=="game"||submitted)return;
+    if(clockRef.current)clearInterval(clockRef.current);
+    const RT=30;setTimeLeft(RT);setTimeExpired(false);
+    clockRef.current=setInterval(()=>setTimeLeft(prev=>{
+      const next=prev-1;
+      if(next<=10&&next>0)sound.playCountdownTick(next);
+      const tp=1-(next/RT);tensionValueRef.current=Math.max(tensionValueRef.current,tp);setTensionState(tensionValueRef.current);sound.setTension(tensionValueRef.current);
+      if(next<=0){clearInterval(clockRef.current);setTimeExpired(true);sound.playTimeUp();setResults(p=>[...p,{round,correct:false,confidence:0,selected:null,timedOut:true}]);setSubmitted(true);setStreak(0);setTimeout(()=>setRevealAnim(true),200);return 0;}
+      return next;
+    }),1000);
+    return()=>clearInterval(clockRef.current);
+  },[round,screen,timedMode,submitted]);
+
+  function handleSelect(name){if(submitted)return;setSelected(name);setInteractionCount(c=>c+1);sound.playTick();}
+  function handleConfChange(v){setConfidence(v);sound.playTick();setInteractionCount(c=>c+1);}
+  function handleClue(){setShowClue(v=>!v);setInteractionCount(c=>c+1);sound.playTick();}
+
+  function handleSubmit(){
+    if(!selected)return;
+    clearInterval(tensionTimerRef.current);if(timedMode)clearInterval(clockRef.current);
+    sound.playLockIn();
+    const correct=selected===scenario.liar;
+    const result={round,correct,confidence,selected,timeLeft:timedMode?timeLeft:null};
+    if(multiMode){currentPlayer===0?setP1Results(p=>[...p,result]):setP2Results(p=>[...p,result]);}
+    else setResults(p=>[...p,result]);
+    setSubmitted(true);
+    if(correct){const ns=streak+1;setStreak(ns);if(timedMode){const spd=timeLeft>=20?20:timeLeft>=10?10:5,str=ns>=3?ns*5:0,tot=spd+str;if(tot>0){setBonusPoints(p=>p+tot);setShowBonus({text:ns>=3?`🔥 STREAK x${ns}  +${tot}pts`:`⚡ FAST  +${tot}pts`,color:ns>=3?C.red:C.teal});setTimeout(()=>setShowBonus(null),2000);}}}else setStreak(0);
+    setTimeout(()=>{setRevealAnim(true);setTimeout(()=>sound.playReveal(correct),200);},100);
+  }
+
+  function handleNext(){
+    setRevealAnim(false);setSubmitted(false);setSelected(null);setConfidence(2);setShowClue(false);setInteractionCount(0);setTimeExpired(false);setTimeLeft(30);
+    if(multiMode){
+      if(currentPlayer===0){setCurrentPlayer(1);setWaitingPass(true);return;}
+      else{const done=p2Results.length+1;if(done>=totalRounds){setScreen("vsresults");return;}setCurrentPlayer(0);setWaitingPass(true);setRound(r=>r+1);return;}
+    }
+    if(round+1>=totalRounds){sound.stopAmbient();const p=buildProfile([...results]);setProfile(p);setScreen("profile");setTimeout(()=>{sound.playProfileReveal();setShowNameEntry(true);},400);}
+    else setRound(r=>r+1);
+  }
+
+  function handleContinue(){setScreen("game");setRevealAnim(false);setSubmitted(false);setSelected(null);setConfidence(2);setShowClue(false);setInteractionCount(0);setRound(r=>r+1);sound.startAmbient();generateAIScenario(scenarios.length+1,results,scenarios).then(s=>{if(s)setScenarios(p=>[...p,s]);});}
+  function handleNameSubmit(name){const e={name,diq:profile.iq,archetype:profile.archetype,correct:profile.correct,total:profile.total,date:Date.now()};saveToLeaderboard(e);setLastEntry(e);setShowNameEntry(false);sound.playLeaderboardEntry();}
+
+  function restartSolo(){
+    clearInterval(tensionTimerRef.current);clearInterval(clockRef.current);sound.stopAmbient();
+    setScreen("intro");setRound(0);setSelected(null);setConfidence(2);setSubmitted(false);setResults([]);setShowClue(false);setProfile(null);setRevealAnim(false);setScenarios(STATIC_SCENARIOS);setTensionState(0);setInteractionCount(0);tensionValueRef.current=0;
+    setShowNameEntry(false);setLastEntry(null);setShowShareCard(false);setStreak(0);setBonusPoints(0);setShowBonus(null);setTimeLeft(30);setTimeExpired(false);
+    setCurrentPlayer(0);setP1Results([]);setP2Results([]);setWaitingPass(false);setChatMessages([]);setChatOpen(false);
+  }
+
+  // Online
+  const handleOnlineData=useCallback((data)=>{
+    if(data.type==="hello")setOpponentName(data.name);
+    if(data.type==="start")setOnlinePhase("playing");
+    if(data.type==="answer"){setOpponentAnswered(true);setOppOnlineResults(p=>[...p,data.result]);setOpponentResult(data.result);}
+    if(data.type==="next_round"){setOpponentAnswered(false);setOpponentResult(null);setMyOnlineSubmission(null);}
+    if(data.type==="chat")setOnlineChat(p=>[...p,data.msg]);
+  },[]);
+  function onlineSend(data){try{connRef.current?.send(data);}catch{}}
+  async function hostGame(name){
+    setMyOnlineName(name);setIsHost(true);const code=makeCode();setRoomCode(code);setOnlinePhase("waiting");
+    const peer=new window.Peer("deceived-"+code,{host:"0.peerjs.com",port:443,secure:true,path:"/"});peerRef.current=peer;
+    peer.on("error",e=>{setOnlineError("Room error: "+e.message);setOnlinePhase("error");});
+    peer.on("connection",conn=>{connRef.current=conn;conn.on("open",()=>conn.send({type:"hello",name}));conn.on("data",handleOnlineData);});
+  }
+  async function joinGame(name,code){
+    setMyOnlineName(name);setIsHost(false);setRoomCode(code);setOnlinePhase("waiting");
+    const peer=new window.Peer({host:"0.peerjs.com",port:443,secure:true,path:"/"});peerRef.current=peer;
+    peer.on("error",e=>{setOnlineError("Could not connect: "+e.message);setOnlinePhase("error");});
+    peer.on("open",()=>{
+      const conn=peer.connect("deceived-"+code,{reliable:true});connRef.current=conn;
+      conn.on("open",()=>conn.send({type:"hello",name}));
+      conn.on("data",(data)=>{handleOnlineData(data);if(data.type==="hello"){setTimeout(()=>{conn.send({type:"start"});setOnlinePhase("playing");},800);}});
+      conn.on("error",e=>{setOnlineError("Connection error: "+e.message);setOnlinePhase("error");});
+    });
+  }
+  useEffect(()=>{if(isHost&&opponentName&&onlinePhase==="waiting"){const t=setTimeout(()=>setOnlinePhase("playing"),1200);return()=>clearTimeout(t);}},[opponentName,isHost,onlinePhase]);
+  function handleOnlineSubmit(result){setMyOnlineSubmission(result);setMyOnlineResults(p=>[...p,result]);onlineSend({type:"answer",result});}
+  function handleOnlineNext(){const next=onlineRound+1;if(next>=ONLINE_ROUNDS){setOnlinePhase("finished");return;}setOnlineRound(next);setOpponentAnswered(false);setOpponentResult(null);setMyOnlineSubmission(null);onlineSend({type:"next_round",round:next});}
+  function handleOnlineChat(msg){setOnlineChat(p=>[...p,msg]);onlineSend({type:"chat",msg});}
+  function resetOnline(){try{peerRef.current?.destroy();}catch{}peerRef.current=null;connRef.current=null;setOnlinePhase("lobby");setMyOnlineName("");setOpponentName("");setIsHost(false);setRoomCode("");setOnlineRound(0);setMyOnlineResults([]);setOppOnlineResults([]);setOpponentAnswered(false);setOpponentResult(null);setOnlineChat([]);setMyOnlineSubmission(null);setOnlineError("");}
+
+  const myOnlineColor=isHost?P_COLORS[0]:P_COLORS[1];
+  const oppOnlineColor=isHost?P_COLORS[1]:P_COLORS[0];
+  const tensionColor=tension<0.4?C.teal:tension<0.7?C.amber:C.red;
+
+  const e=(tag,props,...children)=>React.createElement(tag,props,...children);
+  const btn=(label,onClick,bg=C.amber,color=C.bg,extra={})=>e("button",{onClick,style:{background:bg,color,border:"none",borderRadius:6,padding:"14px 28px",fontSize:15,fontWeight:800,letterSpacing:2,cursor:"pointer",fontFamily:"'Bebas Neue',Impact,sans-serif",...extra}},label);
+
+  // ── HOME ──────────────────────────────────────────────────
+  if(appMode==="home") return e("div",{style:{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 20px",fontFamily:"Inter,sans-serif"}},
+    e("div",{style:{maxWidth:520,width:"100%",textAlign:"center"}},
+      e("div",{style:{fontSize:11,letterSpacing:6,color:C.teal,fontWeight:700,marginBottom:16}},"SOCIAL INTELLIGENCE GAME"),
+      e("h1",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:"clamp(72px,16vw,120px)",color:C.white,margin:0,lineHeight:0.9,letterSpacing:2}},"DECEIVED"),
+      e("div",{style:{width:60,height:3,background:C.amber,margin:"22px auto"}}),
+      e("p",{style:{color:C.muted,fontSize:15,lineHeight:1.7,marginBottom:32}},
+        "Lies. Body language. AI impostors. Buried truth.",e("br"),
+        "Can you tell who's deceiving — and how confident are you?",e("br"),e("br"),
+        e("strong",{style:{color:C.white}},"Scored on accuracy AND confidence.")),
+      e("div",{style:{display:"flex",justifyContent:"center",alignItems:"center",gap:12,marginBottom:8}},
+        e(PulseBar,{confidence:2,active:true}),
+        e(SoundToggle,{on:soundOn,onToggle:()=>setSoundOn(v=>!v)})),
+      e("div",{style:{fontSize:11,color:C.muted,letterSpacing:1,marginBottom:28}},`LIE DETECTOR CALIBRATING · SOUND ${soundOn?"ON":"OFF"}`),
+      e("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}},
+        ...[
+          {icon:"▶",name:"CLASSIC",desc:"Pure deduction · No timer",bg:C.amber,color:C.bg,action:()=>{setMultiMode(false);setTimedMode(false);setAppMode("solo");}},
+          {icon:"⏱",name:"TIMED",desc:"30s · Speed bonuses · Streaks",bg:C.red,color:C.white,action:()=>{setMultiMode(false);setTimedMode(true);setAppMode("solo");}},
+          {icon:"👥",name:"LOCAL VS",desc:"Pass & play · Trash talk",bg:C.purple,color:C.white,action:()=>{setScreen("multisetup");setAppMode("solo");}},
+          {icon:"🌐",name:"ONLINE VS",desc:"Real-time · Room code · Live chat",bg:`linear-gradient(135deg,${C.teal},${C.purple})`,color:C.white,action:()=>{resetOnline();setAppMode("online");}},
+        ].map(m=>e("button",{key:m.name,onClick:m.action,style:{background:m.bg,color:m.color,border:"none",borderRadius:8,padding:"20px 16px",cursor:"pointer",fontFamily:"'Bebas Neue',Impact,sans-serif",textAlign:"center",transition:"transform 0.15s"},onMouseDown:ev=>ev.currentTarget.style.transform="scale(0.96)",onMouseUp:ev=>ev.currentTarget.style.transform="scale(1)"},
+          e("div",{style:{fontSize:24,marginBottom:8}},m.icon),
+          e("div",{style:{fontSize:18,letterSpacing:2,fontWeight:800}},m.name),
+          e("div",{style:{fontSize:11,opacity:0.75,marginTop:4,fontFamily:"Inter,sans-serif"}},m.desc)))),
+      e("button",{onClick:()=>{setAppMode("solo");setScreen("leaderboard");},style:{width:"100%",background:"none",border:`1px solid ${C.border}`,borderRadius:8,padding:"14px",cursor:"pointer",color:C.muted,fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:16,letterSpacing:2}},"🏆 LEADERBOARD")));
+
+  // ── ONLINE ────────────────────────────────────────────────
+  if(appMode==="online"){
+    if(onlinePhase==="lobby") return e(OnlineLobby,{onHostGame:hostGame,onJoinGame:joinGame,peerReady,onBack:()=>setAppMode("home")});
+    if(onlinePhase==="waiting") return e(OnlineWaiting,{roomCode,myName:myOnlineName,opponentName,isHost,onCancel:()=>{resetOnline();setAppMode("home");}});
+    if(onlinePhase==="error") return e("div",{style:{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Inter,sans-serif",padding:20}},
+      e("div",{style:{textAlign:"center",maxWidth:400}},
+        e("div",{style:{fontSize:48,marginBottom:16}},"📡"),
+        e("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:28,color:C.red,marginBottom:12}},"CONNECTION ERROR"),
+        e("div",{style:{color:C.muted,fontSize:14,lineHeight:1.7,marginBottom:28}},onlineError),
+        btn("← TRY AGAIN",()=>{resetOnline();setAppMode("home");})));
+    if(onlinePhase==="playing"&&STATIC_SCENARIOS[onlineRound]) return e(OnlineRound,{key:onlineRound,scenario:STATIC_SCENARIOS[onlineRound],round:onlineRound,totalRounds:ONLINE_ROUNDS,myName:myOnlineName,opponentName:opponentName||"Opponent",myColor:myOnlineColor,oppColor:oppOnlineColor,onSubmit:handleOnlineSubmit,opponentAnswered,opponentCorrect:opponentResult?.correct,myResult:myOnlineSubmission,chatMessages:onlineChat,onChat:handleOnlineChat,onNextRound:handleOnlineNext});
+    if(onlinePhase==="finished") return e(OnlineFinalScore,{myName:myOnlineName,opponentName,myScore:myOnlineResults.filter(r=>r.correct).length,oppScore:oppOnlineResults.filter(r=>r.correct).length,myColor:myOnlineColor,oppColor:oppOnlineColor,totalRounds:ONLINE_ROUNDS,onPlayAgain:()=>{resetOnline();setAppMode("home");}});
+  }
+
+  // ── SOLO SCREENS ──────────────────────────────────────────
+  if(screen==="multisetup") return e(MultiSetup,{playerNames,setPlayerNames,onStart:()=>{setMultiMode(true);setTimedMode(false);setCurrentPlayer(0);setWaitingPass(true);setScreen("game");},onBack:()=>{setAppMode("home");setScreen("intro");}});
+  if(screen==="vsresults") return e(VsResultsScreen,{playerNames,p1Results,p2Results,onPlayAgain:restartSolo,onLeaderboard:()=>setScreen("leaderboard")});
+  if(waitingPass) return e(PassDeviceScreen,{playerName:playerNames[currentPlayer],playerIndex:currentPlayer,onReady:()=>setWaitingPass(false)});
+  if(screen==="leaderboard") return e(LeaderboardScreen,{onBack:()=>{restartSolo();setAppMode("home");},highlightEntry:lastEntry});
+
+  if(screen==="game"&&scenario) return e("div",{style:{minHeight:"100vh",background:C.bg,padding:"24px 20px 60px",fontFamily:"Inter,sans-serif"}},
+    e("div",{style:{maxWidth:620,margin:"0 auto"}},
+      e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}},
+        e("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:22,color:C.white,letterSpacing:2}},"DECEIVED"),
+        e("div",{style:{display:"flex",alignItems:"center",gap:10}},
+          streak>=2&&e("div",{style:{fontSize:12,fontWeight:800,color:C.red}},`🔥 x${streak}`),
+          timedMode&&!submitted&&e("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:22,color:timeLeft<=5?C.red:timeLeft<=10?C.amber:C.white,textShadow:timeLeft<=5?`0 0 12px ${C.red}`:"none"}},`${timeLeft}s`),
+          e("div",{style:{fontSize:10,letterSpacing:1,color:tensionColor,fontWeight:700}},tension<0.3?"◉ MONITORING":tension<0.6?"◉ ELEVATED":tension<0.85?"◉ HIGH STRESS":"◉ CRITICAL"),
+          e(SoundToggle,{on:soundOn,onToggle:()=>setSoundOn(v=>!v)}),
+          multiMode&&e("div",{style:{fontSize:10,fontWeight:700,letterSpacing:1,color:P_COLORS[currentPlayer],border:`1px solid ${P_COLORS[currentPlayer]}`,borderRadius:4,padding:"3px 8px"}},`P${currentPlayer+1}`),
+          e("div",{style:{fontSize:12,color:C.muted}},`R${round+1}/${totalRounds}`))),
+      e("div",{style:{height:3,background:C.border,borderRadius:2,marginBottom:6}},
+        e("div",{style:{height:"100%",width:`${(round/totalRounds)*100}%`,background:C.amber,borderRadius:2,transition:"width 0.4s ease"}})),
+      e("div",{style:{height:2,background:C.border,borderRadius:2,marginBottom:timedMode&&!submitted?0:20,overflow:"hidden"}},
+        e("div",{style:{height:"100%",width:`${tension*100}%`,background:`linear-gradient(90deg,${C.teal},${C.amber},${C.red})`,borderRadius:2,transition:"width 0.7s ease",boxShadow:tension>0.7?`0 0 8px ${C.red}`:"none"}})),
+      timedMode&&!submitted&&e("div",{style:{height:3,background:C.border,borderRadius:2,marginBottom:20,overflow:"hidden"}},
+        e("div",{style:{height:"100%",width:`${(timeLeft/30)*100}%`,background:timeLeft<=5?C.red:timeLeft<=10?C.amber:C.teal,borderRadius:2,transition:"width 1s linear"}})),
+      showBonus&&e("div",{style:{textAlign:"center",padding:"10px",marginBottom:10,fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:22,color:showBonus.color,letterSpacing:2,background:`${showBonus.color}15`,borderRadius:6,border:`1px solid ${showBonus.color}40`}},showBonus.text),
+      e("div",{style:{background:C.cardBg,border:`1px solid ${C.border}`,borderRadius:8,padding:"24px",marginBottom:16}},
+        e("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:14,flexWrap:"wrap"}},
+          e(TypeBadge,{type:scenario.type}),
+          e("span",{style:{color:C.white,fontWeight:700,fontSize:17}},scenario.title),
+          scenario.difficulty&&e("span",{style:{fontSize:10,fontWeight:700,letterSpacing:2,borderRadius:3,padding:"3px 8px",color:scenario.difficulty==="hard"?C.red:scenario.difficulty==="easy"?C.teal:C.amber,border:`1px solid ${scenario.difficulty==="hard"?C.red:scenario.difficulty==="easy"?C.teal:C.amber}`,marginLeft:"auto"}},scenario.difficulty==="hard"?"⚡ HARD":scenario.difficulty==="easy"?"○ EASY":"◈ MEDIUM")),
+        scenario.difficulty&&round>=5&&e("div",{style:{fontSize:11,color:C.muted,marginBottom:8,letterSpacing:1}},"🎯 Targeting your weak spot"),
+        e("p",{style:{color:C.muted,fontSize:14,lineHeight:1.7,margin:0}},scenario.setup)),
+      e("div",{style:{display:"flex",flexDirection:"column",gap:10,marginBottom:16}},
+        scenario.statements.map((s,i)=>{
+          const isSel=selected===s.name,isLiar=submitted&&s.name===scenario.liar,isWrong=submitted&&isSel&&!isLiar;
+          return e("button",{key:i,onClick:()=>handleSelect(s.name),style:{background:isLiar&&submitted?`${C.red}22`:isSel?`${C.amber}18`:C.panel,border:`2px solid ${isLiar&&submitted?C.red:isSel?C.amber:C.border}`,borderRadius:8,padding:"18px 20px",textAlign:"left",cursor:submitted?"default":"pointer",transition:"all 0.2s"}},
+            e("div",{style:{fontWeight:700,fontSize:12,letterSpacing:1,color:isLiar&&submitted?C.red:isSel?C.amber:C.muted,marginBottom:8}},
+              (submitted&&isLiar?"⚠ ":isSel&&!submitted?"▶ ":"")+s.name.toUpperCase()+(submitted&&isLiar?" — DECEIVER":"")+(isWrong?" ✗":"")+(submitted&&isSel&&isLiar?" ✓":"")),
+            e("div",{style:{color:C.white,fontSize:14,lineHeight:1.65}},`"${s.text}"`));
+        })),
+      !submitted&&e("button",{onClick:handleClue,style:{background:"none",border:`1px solid ${C.border}`,borderRadius:6,padding:"10px 16px",color:C.muted,fontSize:13,cursor:"pointer",width:"100%",marginBottom:12}},showClue?"▲ Hide clue":"🔍 Reveal psychological clue (free)"),
+      showClue&&e("div",{style:{background:`${C.teal}12`,border:`1px solid ${C.teal}40`,borderRadius:6,padding:"14px 16px",marginBottom:12}},
+        e("div",{style:{fontSize:10,letterSpacing:2,color:C.teal,marginBottom:6,fontWeight:700}},"BEHAVIORAL INSIGHT"),
+        e("div",{style:{color:C.white,fontSize:13,lineHeight:1.6}},scenario.clue)),
+      !submitted&&e("div",{style:{background:C.panel,border:`1px solid ${tension>0.7?C.red+"60":C.border}`,borderRadius:8,padding:"18px",marginBottom:16,transition:"border-color 0.5s"}},
+        e("div",{style:{fontSize:11,letterSpacing:2,color:C.muted,marginBottom:10,fontWeight:700}},"CONFIDENCE LEVEL"),
+        e(PulseBar,{confidence,active:true}),
+        e("input",{type:"range",min:0,max:4,value:confidence,onChange:ev=>handleConfChange(Number(ev.target.value)),style:{width:"100%",marginTop:10,accentColor:C.amber}}),
+        e("div",{style:{textAlign:"center",color:C.amber,fontWeight:700,fontSize:14,marginTop:6}},CONFIDENCE_LABELS[confidence])),
+      !submitted
+        ? e("button",{onClick:handleSubmit,disabled:!selected,style:{width:"100%",background:selected?C.amber:C.border,color:selected?C.bg:C.muted,border:"none",borderRadius:6,padding:"16px",fontSize:15,fontWeight:800,letterSpacing:2,cursor:selected?"pointer":"not-allowed",fontFamily:"'Bebas Neue',Impact,sans-serif",transition:"background 0.2s"}},"LOCK IN MY READ")
+        : e("div",{style:{opacity:revealAnim?1:0,transform:revealAnim?"translateY(0)":"translateY(12px)",transition:"all 0.4s ease"}},
+            e("div",{style:{background:results[results.length-1]?.correct?`${C.teal}18`:`${C.red}18`,border:`2px solid ${results[results.length-1]?.correct?C.teal:C.red}`,borderRadius:8,padding:"20px",marginBottom:14}},
+              e("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:26,color:results[results.length-1]?.correct?C.teal:C.red,marginBottom:8}},timeExpired?"⏱ TIME'S UP — DECEIVED":results[results.length-1]?.correct?"✓ YOU SAW THROUGH IT":"✗ DECEIVED"),
+              e("p",{style:{color:C.white,fontSize:14,lineHeight:1.65,margin:0}},scenario.explanation)),
+            e("button",{onClick:handleNext,style:{width:"100%",background:C.white,color:C.bg,border:"none",borderRadius:6,padding:"16px",fontSize:15,fontWeight:800,letterSpacing:2,cursor:"pointer",fontFamily:"'Bebas Neue',Impact,sans-serif"}},round+1>=totalRounds?"SEE MY PROFILE →":"NEXT ROUND →"))));
+
+  if(screen==="profile"&&profile){
+    const iqColor=profile.iq>=80?C.teal:profile.iq>=60?C.amber:C.red;
+    return e("div",{style:{minHeight:"100vh",background:C.bg,padding:"40px 20px 80px",fontFamily:"Inter,sans-serif"}},
+      showNameEntry&&e(NameEntryModal,{profile,onSubmit:handleNameSubmit,onSkip:()=>setShowNameEntry(false)}),
+      showShareCard&&e(ShareCard,{profile,results,playerName:lastEntry?.name||null,onClose:()=>setShowShareCard(false)}),
+      e("div",{style:{maxWidth:560,margin:"0 auto",textAlign:"center"}},
+        e("div",{style:{display:"flex",justifyContent:"flex-end",marginBottom:14}},e(SoundToggle,{on:soundOn,onToggle:()=>setSoundOn(v=>!v)})),
+        e("div",{style:{fontSize:11,letterSpacing:6,color:C.muted,fontWeight:700,marginBottom:20}},"DECEPTION IQ PROFILE"),
+        e("div",{style:{width:160,height:160,borderRadius:"50%",border:`6px solid ${iqColor}`,margin:"0 auto 20px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:`${iqColor}10`,boxShadow:`0 0 40px ${iqColor}30`}},
+          e("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:64,color:iqColor,lineHeight:1}},profile.iq),
+          e("div",{style:{fontSize:10,letterSpacing:2,color:C.muted,fontWeight:700}},"DIQ SCORE")),
+        e("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:42,color:C.white,letterSpacing:2,marginBottom:8}},profile.archetype),
+        e("div",{style:{display:"flex",gap:10,justifyContent:"center",alignItems:"center",marginBottom:24}},
+          e("span",{style:{color:C.muted,fontSize:13}},`${profile.correct} of ${profile.total} correct`),
+          timedMode&&e("span",{style:{fontSize:10,fontWeight:700,letterSpacing:2,color:C.red,border:`1px solid ${C.red}`,borderRadius:3,padding:"2px 7px"}},"⏱ TIMED"),
+          timedMode&&bonusPoints>0&&e("span",{style:{fontSize:13,fontWeight:700,color:C.teal}},`+${bonusPoints} bonus`)),
+        e("div",{style:{background:C.cardBg,border:`1px solid ${C.border}`,borderRadius:8,padding:"22px",marginBottom:14,textAlign:"left"}},
+          e("div",{style:{fontSize:10,letterSpacing:2,color:iqColor,fontWeight:700,marginBottom:8}},"YOUR PROFILE"),
+          e("p",{style:{color:C.white,fontSize:14,lineHeight:1.7,margin:0}},profile.description)),
+        e("div",{style:{background:C.cardBg,border:`1px solid ${C.red}40`,borderRadius:8,padding:"22px",marginBottom:24,textAlign:"left"}},
+          e("div",{style:{fontSize:10,letterSpacing:2,color:C.red,fontWeight:700,marginBottom:8}},"YOUR BLIND SPOT"),
+          e("p",{style:{color:C.white,fontSize:14,lineHeight:1.7,margin:0}},profile.blindspot)),
+        e("div",{style:{marginBottom:24}},
+          results.map((r,i)=>e("div",{key:i,style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${C.border}`}},
+            e("span",{style:{color:C.muted,fontSize:13}},`Round ${i+1} · ${CONFIDENCE_LABELS[r.confidence]}`),
+            e("span",{style:{fontWeight:700,fontSize:13,color:r.correct?C.teal:C.red}},r.correct?"✓ Correct":"✗ Deceived")))),
+        e("div",{style:{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}},
+          e("button",{onClick:handleContinue,style:{background:C.teal,color:C.bg,border:"none",borderRadius:6,padding:"14px 24px",fontSize:15,fontWeight:800,letterSpacing:2,cursor:"pointer",fontFamily:"'Bebas Neue',Impact,sans-serif"}},"⚡ MORE"),
+          e("button",{onClick:()=>setShowShareCard(true),style:{background:"none",border:`1px solid ${C.teal}`,color:C.teal,borderRadius:6,padding:"14px 20px",fontSize:14,fontWeight:800,letterSpacing:1,cursor:"pointer",fontFamily:"'Bebas Neue',Impact,sans-serif"}},"📲 SHARE"),
+          e("button",{onClick:()=>setScreen("leaderboard"),style:{background:"none",border:`1px solid ${C.border}`,borderRadius:6,padding:"14px 20px",fontSize:14,fontWeight:700,letterSpacing:1,cursor:"pointer",color:C.muted,fontFamily:"'Bebas Neue',Impact,sans-serif"}},"🏆"),
+          e("button",{onClick:()=>{restartSolo();setAppMode("home");},style:{background:C.amber,color:C.bg,border:"none",borderRadius:6,padding:"14px 24px",fontSize:15,fontWeight:800,letterSpacing:2,cursor:"pointer",fontFamily:"'Bebas Neue',Impact,sans-serif"}},"↺ HOME")),
+        e("div",{style:{marginTop:14,fontSize:12,color:C.muted}},"Share: ",e("span",{style:{color:C.white,fontWeight:700}},`#${profile.archetype.replace(/ /g,"")}`),e("span",{style:{color:C.muted}}," · playdeceived.com"))));
+  }
+
+  return e("div",{style:{background:C.bg,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:C.white,fontFamily:"Inter,sans-serif"}},"Loading...");
+}
+
+// ── Supporting screens (defined outside App for cleanliness) ──
+
+function MultiSetup({playerNames,setPlayerNames,onStart,onBack}){
+  const e=React.createElement;
+  return e("div",{style:{minHeight:"100vh",background:"#0A0C12",display:"flex",alignItems:"center",justifyContent:"center",padding:"40px 20px",fontFamily:"Inter,sans-serif"}},
+    e("div",{style:{maxWidth:480,width:"100%",textAlign:"center"}},
+      e("button",{onClick:onBack,style:{display:"block",marginBottom:24,background:"none",border:"1px solid #1E2235",borderRadius:6,color:"#6B7280",fontSize:13,cursor:"pointer",padding:"8px 14px"}},"← BACK"),
+      e("div",{style:{fontSize:11,letterSpacing:6,color:"#7C3AED",fontWeight:700,marginBottom:14}},"LOCAL VS MODE"),
+      e("h2",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:40,color:"#F0F2F8",margin:"0 0 8px",letterSpacing:2}},"WHO'S PLAYING?"),
+      e("p",{style:{color:"#6B7280",fontSize:14,marginBottom:28}},"Same scenarios, alternate turns. Trash talk enabled."),
+      ...[0,1].map(p=>e("div",{key:p,style:{marginBottom:14,textAlign:"left"}},
+        e("div",{style:{fontSize:11,letterSpacing:2,color:P_COLORS[p],fontWeight:700,marginBottom:6}},`PLAYER ${p+1}`),
+        e("input",{value:playerNames[p],onChange:ev=>{const n=[...playerNames];n[p]=ev.target.value.slice(0,20);setPlayerNames(n);},placeholder:`Player ${p+1} name...`,style:{width:"100%",background:"#11141E",border:`1.5px solid ${P_COLORS[p]}40`,borderRadius:8,color:"#F0F2F8",fontSize:16,padding:"12px 16px",outline:"none",fontFamily:"Inter,sans-serif",boxSizing:"border-box"},onFocus:ev=>ev.target.style.borderColor=P_COLORS[p],onBlur:ev=>ev.target.style.borderColor=P_COLORS[p]+"40"}))),
+      e("button",{onClick:onStart,style:{width:"100%",background:"#7C3AED",color:"#F0F2F8",border:"none",borderRadius:6,padding:"16px",fontSize:16,fontWeight:800,letterSpacing:2,cursor:"pointer",fontFamily:"'Bebas Neue',Impact,sans-serif",marginTop:20}},"START VS MATCH")));
+}
+
+function VsResultsScreen({playerNames,p1Results,p2Results,onPlayAgain,onLeaderboard}){
+  const e=React.createElement;
+  const p1=p1Results.filter(r=>r.correct).length,p2=p2Results.filter(r=>r.correct).length;
+  const winner=p1>p2?0:p2>p1?1:-1;const wc=winner===-1?"#E8A030":P_COLORS[winner];
+  return e("div",{style:{minHeight:"100vh",background:"#0A0C12",padding:"40px 20px 80px",fontFamily:"Inter,sans-serif"}},
+    e("div",{style:{maxWidth:560,margin:"0 auto",textAlign:"center"}},
+      e("div",{style:{fontSize:11,letterSpacing:6,color:"#6B7280",fontWeight:700,marginBottom:20}},"FINAL VERDICT"),
+      e("div",{style:{background:`${wc}15`,border:`2px solid ${wc}`,borderRadius:12,padding:"28px 24px",marginBottom:28}},
+        winner===-1
+          ? e("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:48,color:"#E8A030",letterSpacing:2}},"DRAW")
+          : [e("div",{key:"lbl",style:{fontSize:11,letterSpacing:4,color:wc,fontWeight:700,marginBottom:8}},"WINNER"),
+             e("div",{key:"name",style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:52,color:wc,letterSpacing:2}},playerNames[winner]),
+             e("div",{key:"sub",style:{color:"#6B7280",fontSize:14,marginTop:8}},`${playerNames[winner===0?1:0]} got played. 🕵️`)]),
+      e("div",{style:{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:12,alignItems:"center",marginBottom:24}},
+        ...[0,1].map(p=>e("div",{key:p,style:{background:"#161A28",border:`2px solid ${winner===p?P_COLORS[p]:"#1E2235"}`,borderRadius:10,padding:"20px 12px",textAlign:"center"}},
+          e("div",{style:{fontSize:10,letterSpacing:2,color:P_COLORS[p],fontWeight:700,marginBottom:6}},`P${p+1}`),
+          e("div",{style:{color:"#F0F2F8",fontSize:14,fontWeight:700,marginBottom:8}},playerNames[p]),
+          e("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:52,color:P_COLORS[p],lineHeight:1}},p===0?p1:p2),
+          e("div",{style:{fontSize:11,color:"#6B7280"}},"correct"))),
+        e("div",{key:"vs",style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:28,color:"#6B7280"}},"VS")),
+      e("div",{style:{display:"flex",gap:12,justifyContent:"center"}},
+        e("button",{onClick:onPlayAgain,style:{background:"#E8A030",color:"#0A0C12",border:"none",borderRadius:6,padding:"14px 32px",fontSize:15,fontWeight:800,letterSpacing:2,cursor:"pointer",fontFamily:"'Bebas Neue',Impact,sans-serif"}},"REMATCH"),
+        e("button",{onClick:onLeaderboard,style:{background:"none",border:"1px solid #1E2235",borderRadius:6,padding:"14px 24px",fontSize:14,fontWeight:700,letterSpacing:1,cursor:"pointer",color:"#6B7280",fontFamily:"'Bebas Neue',Impact,sans-serif"}},"🏆 LEADERBOARD"))));
+}
+
+function PassDeviceScreen({playerName,playerIndex,onReady}){
+  const e=React.createElement;const color=P_COLORS[playerIndex];
+  return e("div",{style:{minHeight:"100vh",background:"#0A0C12",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 20px",fontFamily:"Inter,sans-serif"}},
+    e("div",{style:{maxWidth:440,width:"100%",textAlign:"center"}},
+      e("div",{style:{width:80,height:80,borderRadius:"50%",border:`4px solid ${color}`,margin:"0 auto 24px",display:"flex",alignItems:"center",justifyContent:"center",background:`${color}15`,fontSize:36}},playerIndex===0?"👤":"👥"),
+      e("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:14,letterSpacing:4,color,marginBottom:8}},`PLAYER ${playerIndex+1}`),
+      e("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:40,color:"#F0F2F8",letterSpacing:2,marginBottom:16}},playerName),
+      e("p",{style:{color:"#6B7280",fontSize:15,lineHeight:1.7,marginBottom:40}},"Your turn. Same scenario — fresh eyes.",e("br"),e("strong",{style:{color:"#F0F2F8"}},"Don't let them see your answer.")),
+      e("button",{onClick:onReady,style:{background:color,color:"#0A0C12",border:"none",borderRadius:6,padding:"16px 48px",fontSize:18,fontWeight:800,letterSpacing:2,cursor:"pointer",fontFamily:"'Bebas Neue',Impact,sans-serif"}},"I'M READY →")));
+}
+
+function OnlineLobby({onHostGame,onJoinGame,peerReady,onBack}){
+  const[name,setName]=useState("");const[joinCode,setJoinCode]=useState("");const[mode,setMode]=useState(null);
+  const e=React.createElement;
+  const disabled=!name.trim()||!peerReady;
+  return e("div",{style:{minHeight:"100vh",background:"#0A0C12",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 20px",fontFamily:"Inter,sans-serif"}},
+    e("div",{style:{maxWidth:460,width:"100%",textAlign:"center"}},
+      e("button",{onClick:onBack,style:{display:"block",marginBottom:24,background:"none",border:"1px solid #1E2235",borderRadius:6,color:"#6B7280",fontSize:13,cursor:"pointer",padding:"8px 14px"}},"← BACK"),
+      e("div",{style:{fontSize:11,letterSpacing:5,color:"#7C3AED",fontWeight:700,marginBottom:12}},"ONLINE · 1v1"),
+      e("h2",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:52,color:"#F0F2F8",margin:"0 0 8px",letterSpacing:2}},"DECEIVED ONLINE"),
+      e("p",{style:{color:"#6B7280",fontSize:14,lineHeight:1.7,marginBottom:28}},"Real-time 1v1. Same scenario, simultaneous answers.",e("br"),e("strong",{style:{color:"#F0F2F8"}},"Live chat. No mercy.")),
+      !peerReady&&e("div",{style:{color:"#6B7280",fontSize:13,marginBottom:16}},"⏳ Loading connection engine..."),
+      e("input",{value:name,onChange:ev=>setName(ev.target.value.slice(0,20)),placeholder:"Your name or alias...",style:{width:"100%",background:"#11141E",border:"1.5px solid #1E2235",borderRadius:8,color:"#F0F2F8",fontSize:16,padding:"13px 16px",outline:"none",fontFamily:"Inter,sans-serif",boxSizing:"border-box",marginBottom:14},onFocus:ev=>ev.target.style.borderColor="#E8A030",onBlur:ev=>ev.target.style.borderColor="#1E2235"}),
+      !mode&&e("div",{style:{display:"flex",gap:12}},
+        e("button",{onClick:()=>setMode("host"),disabled,style:{flex:1,background:disabled?"#1E2235":"#E8A030",color:disabled?"#6B7280":"#0A0C12",border:"none",borderRadius:6,padding:"13px",fontSize:14,fontWeight:800,letterSpacing:2,cursor:disabled?"not-allowed":"pointer",fontFamily:"'Bebas Neue',Impact,sans-serif"}},"🏠 CREATE ROOM"),
+        e("button",{onClick:()=>setMode("join"),disabled,style:{flex:1,background:disabled?"#1E2235":"#00D4AA",color:disabled?"#6B7280":"#0A0C12",border:"none",borderRadius:6,padding:"13px",fontSize:14,fontWeight:800,letterSpacing:2,cursor:disabled?"not-allowed":"pointer",fontFamily:"'Bebas Neue',Impact,sans-serif"}},"🔗 JOIN ROOM")),
+      mode==="host"&&e("div",null,
+        e("button",{onClick:()=>onHostGame(name.trim()),style:{width:"100%",background:"#E8A030",color:"#0A0C12",border:"none",borderRadius:6,padding:"13px",fontSize:14,fontWeight:800,letterSpacing:2,cursor:"pointer",fontFamily:"'Bebas Neue',Impact,sans-serif"}},"GENERATE ROOM CODE →"),
+        e("button",{onClick:()=>setMode(null),style:{background:"none",border:"none",color:"#6B7280",fontSize:13,cursor:"pointer",marginTop:12}},"← Back")),
+      mode==="join"&&e("div",null,
+        e("input",{value:joinCode,onChange:ev=>setJoinCode(ev.target.value.toUpperCase().slice(0,4)),placeholder:"CODE",style:{width:"100%",background:"#11141E",border:"1.5px solid #00D4AA",borderRadius:8,color:"#00D4AA",fontSize:32,fontWeight:800,letterSpacing:8,padding:"13px 16px",outline:"none",fontFamily:"'Bebas Neue',Impact,sans-serif",boxSizing:"border-box",marginBottom:12,textAlign:"center"}}),
+        e("button",{onClick:()=>onJoinGame(name.trim(),joinCode),disabled:joinCode.length<4,style:{width:"100%",background:joinCode.length<4?"#1E2235":"#00D4AA",color:joinCode.length<4?"#6B7280":"#0A0C12",border:"none",borderRadius:6,padding:"13px",fontSize:14,fontWeight:800,letterSpacing:2,cursor:joinCode.length<4?"not-allowed":"pointer",fontFamily:"'Bebas Neue',Impact,sans-serif"}},"JOIN GAME →"),
+        e("button",{onClick:()=>setMode(null),style:{background:"none",border:"none",color:"#6B7280",fontSize:13,cursor:"pointer",marginTop:12}},"← Back"))));
+}
+
+function OnlineWaiting({roomCode,myName,opponentName,isHost,onCancel}){
+  const[dots,setDots]=useState(".");
+  useEffect(()=>{const t=setInterval(()=>setDots(d=>d.length>=3?".":d+"."),500);return()=>clearInterval(t);},[]);
+  const e=React.createElement;
+  return e("div",{style:{minHeight:"100vh",background:"#0A0C12",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 20px",fontFamily:"Inter,sans-serif"}},
+    e("div",{style:{maxWidth:440,width:"100%",textAlign:"center"}},
+      isHost&&[
+        e("div",{key:"lbl",style:{fontSize:11,letterSpacing:4,color:"#6B7280",fontWeight:700,marginBottom:12}},"ROOM CODE"),
+        e("div",{key:"code",style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:88,color:"#E8A030",letterSpacing:12,lineHeight:1,marginBottom:8}},roomCode),
+        e("div",{key:"hint",style:{color:"#6B7280",fontSize:13,marginBottom:28}},"Share this code with your opponent"),
+      ],
+      !isHost&&e("div",{style:{color:"#6B7280",fontSize:15,marginBottom:24}},`Connecting to room${dots}`),
+      opponentName&&e("div",{style:{background:"rgba(0,212,170,0.15)",border:"1px solid rgba(0,212,170,0.4)",borderRadius:8,padding:"16px",marginBottom:20}},
+        e("div",{style:{fontSize:11,letterSpacing:2,color:"#00D4AA",fontWeight:700,marginBottom:4}},isHost?"OPPONENT JOINED":"CONNECTED TO"),
+        e("div",{style:{color:"#F0F2F8",fontWeight:700,fontSize:18}},opponentName),
+        e("div",{style:{color:"#6B7280",fontSize:13,marginTop:8}},`Game starting${dots}`)),
+      isHost&&!opponentName&&e("div",{style:{color:"#6B7280",fontSize:15,marginBottom:20}},`Waiting for opponent${dots}`),
+      e("div",{style:{padding:"12px 16px",background:"#11141E",borderRadius:8,marginBottom:20}},
+        e("div",{style:{fontSize:11,color:"#6B7280",letterSpacing:1}},"YOU"),
+        e("div",{style:{color:"#F0F2F8",fontWeight:700}},myName)),
+      e("button",{onClick:onCancel,style:{background:"none",border:"1px solid #1E2235",borderRadius:6,color:"#6B7280",fontSize:13,cursor:"pointer",padding:"10px 20px"}},"CANCEL")));
+}
+
+function OnlineRound({scenario,round,totalRounds,myName,opponentName,myColor,oppColor,onSubmit,opponentAnswered,opponentCorrect,myResult,chatMessages,onChat,onNextRound}){
+  const[selected,setSelected]=useState(null);const[confidence,setConfidence]=useState(2);const[submitted,setSubmitted]=useState(false);
+  const[showClue,setShowClue]=useState(false);const[chatOpen,setChatOpen]=useState(false);const[chatInput,setChatInput]=useState("");
+  const[unread,setUnread]=useState(false);const[revealAnim,setRevealAnim]=useState(false);const[timeLeft,setTimeLeft]=useState(30);
+  const clockRef=useRef(null);const chatLogRef=useRef(null);const prevLen=useRef(chatMessages.length);
+  useEffect(()=>{if(chatLogRef.current)chatLogRef.current.scrollTop=chatLogRef.current.scrollHeight;if(chatMessages.length>prevLen.current&&!chatOpen)setUnread(true);prevLen.current=chatMessages.length;},[chatMessages]);
+  useEffect(()=>{clockRef.current=setInterval(()=>setTimeLeft(p=>{if(p<=1){clearInterval(clockRef.current);if(!submitted)doSubmit(true);return 0;}return p-1;}),1000);return()=>clearInterval(clockRef.current);},[]);
+  useEffect(()=>{if(submitted&&opponentAnswered)setTimeout(()=>setRevealAnim(true),300);},[opponentAnswered,submitted]);
+  function doSubmit(to=false){if(submitted)return;clearInterval(clockRef.current);const correct=!to&&selected===scenario.liar;setSubmitted(true);onSubmit({selected:to?null:selected,correct,confidence,timedOut:to});}
+  function sendChat(t){if(!t.trim())return;onChat({text:t.trim(),sender:myName,ts:Date.now()});setChatInput("");}
+  const bothAnswered=submitted&&opponentAnswered,myCorrect=myResult?.correct;
+  const e=React.createElement;
+  return e("div",{style:{minHeight:"100vh",background:"#0A0C12",fontFamily:"Inter,sans-serif",paddingBottom:80}},
+    chatOpen&&e("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.9)",zIndex:300,display:"flex",flexDirection:"column",justifyContent:"flex-end"}},
+      e("div",{style:{background:"#11141E",borderTop:"1px solid #1E2235",padding:"14px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}},
+        e("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:20,color:"#F0F2F8",letterSpacing:2}},"💬 LIVE CHAT"),
+        e("button",{onClick:()=>{setChatOpen(false);setUnread(false);},style:{background:"none",border:"1px solid #1E2235",borderRadius:6,color:"#6B7280",fontSize:13,cursor:"pointer",padding:"6px 12px"}},"BACK")),
+      e("div",{ref:chatLogRef,style:{flex:1,maxHeight:"45vh",overflowY:"auto",padding:"16px 20px",display:"flex",flexDirection:"column",gap:10,background:"#0A0C12"}},
+        chatMessages.length===0&&e("div",{style:{color:"#6B7280",fontSize:13,textAlign:"center",marginTop:32}},"No messages yet. 🧠"),
+        chatMessages.map((m,i)=>{const isMe=m.sender===myName,color=isMe?myColor:oppColor;return e("div",{key:i,style:{display:"flex",flexDirection:"column",alignItems:isMe?"flex-end":"flex-start"}},
+          e("div",{style:{fontSize:10,color:"#6B7280",marginBottom:3}},m.sender),
+          e("div",{style:{background:`${color}20`,border:`1px solid ${color}50`,borderRadius:isMe?"12px 12px 3px 12px":"12px 12px 12px 3px",padding:"10px 14px",maxWidth:"80%",color:"#F0F2F8",fontSize:14}},m.text));})),
+      e("div",{style:{background:"#11141E",padding:"12px 16px",borderTop:"1px solid #1E2235"}},
+        e("div",{style:{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}},TRASH.map((t,i)=>e("button",{key:i,onClick:()=>sendChat(t),style:{background:"none",border:"1px solid #1E2235",borderRadius:20,color:"#6B7280",fontSize:11,padding:"5px 10px",cursor:"pointer"}},t))),
+        e("div",{style:{display:"flex",gap:8}},
+          e("input",{value:chatInput,onChange:ev=>setChatInput(ev.target.value),onKeyDown:ev=>ev.key==="Enter"&&sendChat(chatInput),placeholder:"Type...",style:{flex:1,background:"#0A0C12",border:"1.5px solid #1E2235",borderRadius:8,color:"#F0F2F8",fontSize:14,padding:"10px 14px",outline:"none",fontFamily:"Inter,sans-serif"}}),
+          e("button",{onClick:()=>sendChat(chatInput),style:{background:myColor,color:"#0A0C12",border:"none",borderRadius:8,padding:"10px 18px",fontWeight:800,fontSize:14,cursor:"pointer"}},"SEND")))),
+    e("div",{style:{padding:"20px 20px 0",maxWidth:620,margin:"0 auto"}},
+      e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}},
+        e("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:20,color:"#F0F2F8",letterSpacing:2}},"DECEIVED ",e("span",{style:{fontSize:10,color:"#7C3AED",letterSpacing:3}},"ONLINE")),
+        e("div",{style:{display:"flex",alignItems:"center",gap:10}},
+          !submitted&&e("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:22,color:timeLeft<=5?"#E83050":timeLeft<=10?"#E8A030":"#F0F2F8"}},`${timeLeft}s`),
+          e("button",{onClick:()=>{setChatOpen(true);setUnread(false);},style:{position:"relative",background:"none",border:`1px solid ${unread?"#7C3AED":"#1E2235"}`,borderRadius:6,color:unread?"#7C3AED":"#6B7280",fontSize:16,cursor:"pointer",padding:"5px 10px"}},"💬",unread&&e("span",{style:{position:"absolute",top:-3,right:-3,width:8,height:8,background:"#7C3AED",borderRadius:"50%"}})),
+          e("div",{style:{fontSize:12,color:"#6B7280"}},`R${round+1}/${totalRounds}`))),
+      !submitted&&e("div",{style:{height:3,background:"#1E2235",borderRadius:2,marginBottom:10,overflow:"hidden"}},e("div",{style:{height:"100%",width:`${(timeLeft/30)*100}%`,background:timeLeft<=5?"#E83050":timeLeft<=10?"#E8A030":"#00D4AA",borderRadius:2,transition:"width 1s linear"}})),
+      e("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}},
+        ...[{name:myName,color:myColor,answered:submitted,label:"YOU"},{name:opponentName,color:oppColor,answered:opponentAnswered,label:"OPPONENT"}].map((p,i)=>
+          e("div",{key:i,style:{background:"#11141E",border:`1px solid ${p.answered?p.color+"60":"#1E2235"}`,borderRadius:8,padding:"10px 14px",transition:"border-color 0.3s"}},
+            e("div",{style:{fontSize:9,letterSpacing:2,color:p.color,fontWeight:700,marginBottom:4}},p.label),
+            e("div",{style:{color:"#F0F2F8",fontSize:13,fontWeight:600,marginBottom:3}},p.name),
+            e("div",{style:{fontSize:12,color:p.answered?"#00D4AA":"#6B7280"}},p.answered?"✓ Locked in":"⋯ Thinking...")))),
+    e("div",{style:{padding:"0 20px",maxWidth:620,margin:"0 auto"}},
+      e("div",{style:{background:"#161A28",border:"1px solid #1E2235",borderRadius:8,padding:"22px",marginBottom:14}},
+        e("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:12}},
+          React.createElement(TypeBadge,{type:scenario.type}),
+          e("span",{style:{color:"#F0F2F8",fontWeight:700,fontSize:16}},scenario.title)),
+        e("p",{style:{color:"#6B7280",fontSize:14,lineHeight:1.7,margin:0}},scenario.setup)),
+      e("div",{style:{display:"flex",flexDirection:"column",gap:10,marginBottom:14}},
+        scenario.statements.map((s,i)=>{const isSel=selected===s.name,isLiar=bothAnswered&&s.name===scenario.liar,isWrong=bothAnswered&&isSel&&!isLiar;return e("button",{key:i,onClick:()=>!submitted&&setSelected(s.name),style:{background:isLiar&&bothAnswered?`#E8305020`:isSel?`${myColor}15`:"#11141E",border:`2px solid ${isLiar&&bothAnswered?"#E83050":isSel?myColor:"#1E2235"}`,borderRadius:8,padding:"16px 18px",textAlign:"left",cursor:submitted?"default":"pointer",transition:"all 0.2s"}},
+          e("div",{style:{fontWeight:700,fontSize:11,letterSpacing:1,color:isLiar&&bothAnswered?"#E83050":isSel?myColor:"#6B7280",marginBottom:6}},(bothAnswered&&isLiar?"⚠ ":isSel&&!submitted?"▶ ":"")+s.name.toUpperCase()+(bothAnswered&&isLiar?" — DECEIVER":"")+(isWrong?" ✗":"")+(bothAnswered&&isSel&&isLiar?" ✓":"")),
+          e("div",{style:{color:"#F0F2F8",fontSize:13,lineHeight:1.6}},`"${s.text}"`));})),
+      !submitted&&e("button",{onClick:()=>setShowClue(v=>!v),style:{background:"none",border:"1px solid #1E2235",borderRadius:6,padding:"10px 16px",color:"#6B7280",fontSize:13,cursor:"pointer",width:"100%",marginBottom:10}},showClue?"▲ Hide clue":"🔍 Reveal psychological clue (free)"),
+      showClue&&e("div",{style:{background:"rgba(0,212,170,0.12)",border:"1px solid rgba(0,212,170,0.4)",borderRadius:6,padding:"12px 16px",marginBottom:10}},
+        e("div",{style:{fontSize:10,letterSpacing:2,color:"#00D4AA",marginBottom:4,fontWeight:700}},"BEHAVIORAL INSIGHT"),
+        e("div",{style:{color:"#F0F2F8",fontSize:13,lineHeight:1.6}},scenario.clue)),
+      !submitted&&e("div",{style:{background:"#11141E",border:"1px solid #1E2235",borderRadius:8,padding:"16px",marginBottom:14}},
+        e("div",{style:{fontSize:11,letterSpacing:2,color:"#6B7280",marginBottom:8,fontWeight:700}},"CONFIDENCE"),
+        e("input",{type:"range",min:0,max:4,value:confidence,onChange:ev=>setConfidence(Number(ev.target.value)),style:{width:"100%",accentColor:myColor}}),
+        e("div",{style:{textAlign:"center",color:myColor,fontWeight:700,fontSize:14,marginTop:6}},CONFIDENCE_LABELS[confidence])),
+      !submitted
+        ? e("button",{onClick:()=>doSubmit(),disabled:!selected,style:{width:"100%",background:selected?myColor:"#1E2235",color:selected?"#0A0C12":"#6B7280",border:"none",borderRadius:6,padding:"16px",fontSize:15,fontWeight:800,letterSpacing:2,cursor:selected?"pointer":"not-allowed",fontFamily:"'Bebas Neue',Impact,sans-serif"}},"LOCK IN MY READ")
+        : !bothAnswered
+          ? e("div",{style:{textAlign:"center",padding:"20px",background:"#11141E",borderRadius:8,color:"#6B7280",fontSize:14}},`⏳ Waiting for ${opponentName} to answer...`)
+          : e("div",{style:{opacity:revealAnim?1:0,transform:revealAnim?"translateY(0)":"translateY(12px)",transition:"all 0.4s ease"}},
+              e("div",{style:{background:myCorrect?"rgba(0,212,170,0.18)":"rgba(232,48,80,0.18)",border:`2px solid ${myCorrect?"#00D4AA":"#E83050"}`,borderRadius:8,padding:"18px",marginBottom:10}},
+                e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
+                  e("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:22,color:myCorrect?"#00D4AA":"#E83050"}},myCorrect?"✓ YOU SAW THROUGH IT":"✗ DECEIVED"),
+                  e("div",{style:{fontSize:11,color:opponentCorrect?"#00D4AA":"#E83050",fontWeight:700}},`${opponentName}: ${opponentCorrect?"✓":"✗"}`)),
+                e("p",{style:{color:"#F0F2F8",fontSize:13,lineHeight:1.6,margin:0}},scenario.explanation)),
+              e("button",{onClick:onNextRound,style:{width:"100%",background:"#F0F2F8",color:"#0A0C12",border:"none",borderRadius:6,padding:"14px",fontSize:15,fontWeight:800,letterSpacing:2,cursor:"pointer",fontFamily:"'Bebas Neue',Impact,sans-serif"}},round+1>=totalRounds?"SEE FINAL SCORE →":"NEXT ROUND →")))));
+}
+
+function OnlineFinalScore({myName,opponentName,myScore,oppScore,myColor,oppColor,totalRounds,onPlayAgain}){
+  const winner=myScore>oppScore?"me":oppScore>myScore?"opp":"draw";const wc=winner==="me"?myColor:winner==="opp"?oppColor:"#E8A030";
+  const e=React.createElement;
+  return e("div",{style:{minHeight:"100vh",background:"#0A0C12",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 20px",fontFamily:"Inter,sans-serif"}},
+    e("div",{style:{maxWidth:480,width:"100%",textAlign:"center"}},
+      e("div",{style:{fontSize:11,letterSpacing:6,color:"#6B7280",fontWeight:700,marginBottom:20}},"FINAL VERDICT · ONLINE"),
+      e("div",{style:{background:`${wc}15`,border:`2px solid ${wc}`,borderRadius:12,padding:"28px",marginBottom:24}},
+        winner==="draw"
+          ? e("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:52,color:"#E8A030",letterSpacing:2}},"DRAW")
+          : [e("div",{key:"l",style:{fontSize:11,letterSpacing:4,color:wc,fontWeight:700,marginBottom:8}},"WINNER"),
+             e("div",{key:"n",style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:52,color:wc,letterSpacing:2}},winner==="me"?myName:opponentName),
+             e("div",{key:"s",style:{color:"#6B7280",fontSize:14,marginTop:8}},winner==="me"?`${opponentName} got played. 🕵️`:"You got played. 🕵️")]),
+      e("div",{style:{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:12,alignItems:"center",marginBottom:24}},
+        ...[{n:myName,s:myScore,c:myColor,w:winner==="me"},{n:opponentName,s:oppScore,c:oppColor,w:winner==="opp"}].map((p,i)=>
+          e("div",{key:i,style:{background:"#161A28",border:`2px solid ${p.w?p.c:"#1E2235"}`,borderRadius:10,padding:"20px 12px",textAlign:"center"}},
+            e("div",{style:{fontSize:10,letterSpacing:2,color:p.c,fontWeight:700,marginBottom:6}},i===0?"YOU":"OPPONENT"),
+            e("div",{style:{color:"#F0F2F8",fontSize:13,fontWeight:700,marginBottom:10}},p.n),
+            e("div",{style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:52,color:p.c,lineHeight:1}},p.s),
+            e("div",{style:{fontSize:11,color:"#6B7280"}},`/ ${totalRounds}`))),
+        e("div",{key:"vs",style:{fontFamily:"'Bebas Neue',Impact,sans-serif",fontSize:28,color:"#6B7280"}},"VS")),
+      e("button",{onClick:onPlayAgain,style:{background:"#E8A030",color:"#0A0C12",border:"none",borderRadius:6,padding:"14px 48px",fontSize:15,fontWeight:800,letterSpacing:2,cursor:"pointer",fontFamily:"'Bebas Neue',Impact,sans-serif",width:"100%"}},"PLAY AGAIN")));
+}
+
+// ── Mount ─────────────────────────────────────────────────────
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App));
+
+// Hide loader after React mounts
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const loader = document.getElementById('loader');
+    if (loader) { loader.style.opacity = '0'; setTimeout(() => loader.remove(), 400); }
+  }, 1400);
+});
+</script>
+</body>
+</html>
