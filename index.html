@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content="DECEIVED — The social intelligence game. Can you tell who's lying? Test your deception IQ. Free to play."/>
+<meta property="og:title" content="DECEIVED — Can you spot the lie?"/>
+<meta property="og:description" content="5 scenarios. Lies, body language, AI impostors, buried truth. What's your Deception IQ?"/>
+<meta name="theme-color" content="#0A0C12"/>
+<title>DECEIVED — Social Intelligence Game</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #0A0C12;
+    --panel:   #11141E;
+    --border:  #1E2235;
+    --amber:   #E8A030;
+    --teal:    #00D4AA;
+    --red:     #E83050;
+    --white:   #F0F2F8;
+    --muted:   #6B7280;
+    --card:    #161A28;
+    --purple:  #7C3AED;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Grid background ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Gradient accent bar ── */
+  .gradient-bar {
+    height: 4px;
+    background: linear-gradient(90deg, var(--teal), var(--amber), var(--red));
+  }
+
+  /* ── Nav ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(10,12,18,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 3px;
+    color: var(--white);
+  }
+  .nav-cta {
+    background: var(--amber);
+    color: var(--bg);
+    border: none;
+    border-radius: 4px;
+    padding: 10px 22px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.15s;
+  }
+  .nav-cta:hover { opacity: 0.88; }
+
+  /* ── Sections ── */
+  section { position: relative; z-index: 1; }
+
+  /* ── Hero ── */
+  .hero {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 24px 60px;
+    text-align: center;
+  }
+  .hero-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 5px;
+    color: var(--teal);
+    margin-bottom: 20px;
+  }
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(88px, 22vw, 168px);
+    line-height: 0.88;
+    letter-spacing: 4px;
+    color: var(--white);
+    margin-bottom: 0;
+  }
+  .hero-title span {
+    display: block;
+    background: linear-gradient(90deg, var(--amber), var(--red));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-divider {
+    width: 56px;
+    height: 3px;
+    background: var(--amber);
+    margin: 28px auto;
+  }
+  .hero-sub {
+    font-size: clamp(15px, 3.5vw, 19px);
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 520px;
+    margin-bottom: 12px;
+  }
+  .hero-sub strong { color: var(--white); }
+  .hero-question {
+    font-size: clamp(17px, 4vw, 22px);
+    color: var(--white);
+    font-weight: 700;
+    margin-bottom: 40px;
+  }
+
+  /* ── Pulse bar (live) ── */
+  .pulse-wrap {
+    display: flex;
+    gap: 4px;
+    align-items: flex-end;
+    height: 40px;
+    margin-bottom: 10px;
+    justify-content: center;
+  }
+  .pulse-bar {
+    width: 7px;
+    border-radius: 3px;
+    background: var(--teal);
+    animation: pulseBeat 1.4s ease-in-out infinite;
+  }
+  @keyframes pulseBeat {
+    0%,100% { height: 8px; opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+  .pulse-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 36px;
+  }
+
+  /* ── CTA buttons ── */
+  .cta-group {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+  .btn-primary {
+    background: var(--amber);
+    color: var(--bg);
+    border: none;
+    border-radius: 6px;
+    padding: 18px 40px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 3px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.1s, opacity 0.15s;
+    display: inline-block;
+  }
+  .btn-primary:active { transform: scale(0.96); }
+  .btn-outline {
+    background: none;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 28px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color 0.2s, color 0.2s;
+    display: inline-block;
+  }
+  .btn-outline:hover { border-color: var(--muted); color: var(--white); }
+  .hero-note {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* ── Evidence tape ticker ── */
+  .tape-section {
+    overflow: hidden;
+    padding: 20px 0;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .tape-track {
+    display: flex;
+    gap: 0;
+    width: max-content;
+    animation: tapescroll 28s linear infinite;
+  }
+  .tape-track:hover { animation-play-state: paused; }
+  @keyframes tapescroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  .tape-item {
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--amber);
+    padding: 0 32px;
+    text-transform: uppercase;
+  }
+  .tape-item::after {
+    content: '◆';
+    margin-left: 32px;
+    color: var(--border);
+  }
+
+  /* ── Demo scenario ── */
+  .demo-section {
+    padding: 80px 24px;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .section-eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(36px, 8vw, 56px);
+    letter-spacing: 2px;
+    color: var(--white);
+    line-height: 1.05;
+    margin-bottom: 40px;
+  }
+  .demo-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px 24px;
+    margin-bottom: 12px;
+  }
+  .demo-type-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--red);
+    border: 1px solid var(--red);
+    border-radius: 3px;
+    padding: 3px 8px;
+    margin-bottom: 14px;
+  }
+  .demo-scenario-title {
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--white);
+    margin-bottom: 12px;
+  }
+  .demo-setup {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .demo-statements {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .demo-statement {
+    background: var(--panel);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    text-align: left;
+    width: 100%;
+  }
+  .demo-statement:hover {
+    border-color: var(--amber);
+    background: rgba(232,160,48,0.06);
+  }
+  .demo-statement.selected {
+    border-color: var(--amber);
+    background: rgba(232,160,48,0.10);
+  }
+  .demo-statement.liar {
+    border-color: var(--red);
+    background: rgba(232,48,80,0.10);
+  }
+  .demo-name {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .demo-statement.selected .demo-name { color: var(--amber); }
+  .demo-statement.liar .demo-name { color: var(--red); }
+  .demo-text {
+    font-size: 14px;
+    color: var(--white);
+    line-height: 1.6;
+  }
+  .demo-reveal {
+    background: rgba(232,48,80,0.12);
+    border: 1.5px solid var(--red);
+    border-radius: 8px;
+    padding: 18px 20px;
+    display: none;
+  }
+  .demo-reveal.visible { display: block; }
+  .demo-reveal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--red);
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+  .demo-reveal-text {
+    font-size: 13px;
+    color: var(--white);
+    line-height: 1.65;
+  }
+  .demo-lock-btn {
+    width: 100%;
+    background: var(--amber);
+    color: var(--bg);
+    border: none;
+    border-radius: 6px;
+    padding: 16px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 17px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    margin-top: 4px;
+  }
+  .demo-lock-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+  .demo-lock-btn:not(:disabled):hover { opacity: 0.88; }
+
+  /* ── Modes grid ── */
+  .modes-section {
+    padding: 0 24px 80px;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .modes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .mode-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 20px;
+    text-align: center;
+    text-decoration: none;
+    transition: border-color 0.2s, transform 0.15s;
+    display: block;
+    cursor: pointer;
+  }
+  .mode-card:hover { transform: translateY(-2px); }
+  .mode-card.amber:hover { border-color: var(--amber); }
+  .mode-card.red:hover { border-color: var(--red); }
+  .mode-card.purple:hover { border-color: var(--purple); }
+  .mode-card.teal:hover { border-color: var(--teal); }
+  .mode-icon { font-size: 32px; margin-bottom: 10px; }
+  .mode-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--white);
+    margin-bottom: 6px;
+  }
+  .mode-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* ── Stats strip ── */
+  .stats-section {
+    padding: 60px 24px;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 16px;
+    text-align: center;
+  }
+  .stat-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 44px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .stat-label { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 1px; }
+
+  /* ── How it works ── */
+  .how-section {
+    padding: 0 24px 80px;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .how-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .how-step {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    padding: 24px 0;
+    border-bottom: 1px solid var(--border);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s, transform 0.5s;
+  }
+  .how-step.visible { opacity: 1; transform: translateY(0); }
+  .how-step:last-child { border-bottom: none; }
+  .step-icon {
+    font-size: 28px;
+    min-width: 44px;
+    margin-top: 2px;
+  }
+  .step-body {}
+  .step-title {
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--white);
+    margin-bottom: 6px;
+  }
+  .step-desc { font-size: 14px; color: var(--muted); line-height: 1.65; }
+
+  /* ── Archetypes ── */
+  .archetypes-section {
+    padding: 0 24px 80px;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .archetype-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .archetype-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 18px;
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.5s, transform 0.5s;
+  }
+  .archetype-card.visible { opacity: 1; transform: translateY(0); }
+  .archetype-icon { font-size: 24px; margin-bottom: 10px; }
+  .archetype-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 1px;
+    color: var(--white);
+    margin-bottom: 6px;
+  }
+  .archetype-desc { font-size: 12px; color: var(--muted); line-height: 1.55; }
+  .archetype-card .diq-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    border-radius: 3px;
+    padding: 3px 8px;
+    margin-bottom: 10px;
+  }
+
+  /* ── Social proof / quotes ── */
+  .social-section {
+    padding: 0 24px 80px;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .quote-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .quote-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 20px;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.4s, transform 0.4s;
+  }
+  .quote-card.visible { opacity: 1; transform: translateY(0); }
+  .quote-text {
+    font-size: 15px;
+    color: var(--white);
+    line-height: 1.65;
+    margin-bottom: 12px;
+    font-style: italic;
+  }
+  .quote-meta {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .quote-meta span { color: var(--amber); }
+
+  /* ── Final CTA ── */
+  .final-cta {
+    padding: 80px 24px 100px;
+    text-align: center;
+    max-width: 520px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+  .final-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(44px, 10vw, 72px);
+    letter-spacing: 3px;
+    color: var(--white);
+    line-height: 1.0;
+    margin-bottom: 20px;
+  }
+  .final-sub {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.7;
+    margin-bottom: 36px;
+  }
+
+  /* ── Footer ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 24px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+  .footer-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .footer-links {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  .footer-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--white); }
+  .footer-note { font-size: 12px; color: var(--muted); }
+
+  /* ── Scroll animations ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 480px) {
+    .modes-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .archetype-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stats-grid { grid-template-columns: repeat(3,1fr); gap: 8px; }
+    .stat-number { font-size: 34px; }
+    .mode-card { padding: 18px 12px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tape-track { animation: none; }
+    .pulse-bar { animation: none; height: 16px; opacity: 0.7; }
+    .reveal, .how-step, .archetype-card, .quote-card { opacity: 1; transform: none; transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Gradient top bar -->
+<div class="gradient-bar"></div>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-logo">DECEIVED</div>
+  <a href="#play" class="nav-cta">PLAY FREE</a>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <div class="hero-eyebrow">SOCIAL INTELLIGENCE GAME</div>
+
+  <h1 class="hero-title">
+    DE<span>CEIVED</span>
+  </h1>
+
+  <div class="hero-divider"></div>
+
+  <p class="hero-sub">
+    Five scenarios. Real lies. AI impostors. Body language tells.<br/>
+    <strong>Can you tell who's deceiving — and how confident are you?</strong>
+  </p>
+
+  <p class="hero-question">What's your Deception IQ?</p>
+
+  <!-- Live pulse bar -->
+  <div class="pulse-wrap" id="heroPulse" aria-hidden="true"></div>
+  <div class="pulse-label">LIE DETECTOR CALIBRATING</div>
+
+  <div class="cta-group">
+    <a href="#play" class="btn-primary">TAKE THE TEST</a>
+    <a href="#how" class="btn-outline">HOW IT WORKS</a>
+  </div>
+  <div class="hero-note">FREE · NO SIGN UP · PLAY IN 10 SECONDS</div>
+</section>
+
+<!-- ═══ EVIDENCE TAPE ═══ -->
+<div class="tape-section" aria-hidden="true">
+  <div class="tape-track" id="tapeTrack"></div>
+</div>
+
+<!-- ═══ LIVE DEMO ═══ -->
+<section class="demo-section reveal" id="demo">
+  <div class="section-eyebrow">TRY IT NOW</div>
+  <h2 class="section-title">One round.<br/>See what you're made of.</h2>
+
+  <div class="demo-card">
+    <div class="demo-type-badge">👁 DECEPTION</div>
+    <div class="demo-scenario-title">The Alibi</div>
+    <p class="demo-setup">A valuable watch goes missing from an office. Three coworkers were present. One of them is lying about where they were.</p>
+  </div>
+
+  <div class="demo-statements">
+    <button class="demo-statement" data-name="Marcus" onclick="demoSelect(this)">
+      <div class="demo-name">MARCUS</div>
+      <div class="demo-text">"I was in the break room the entire time. Sarah can confirm — we were talking about the Henderson project."</div>
+    </button>
+    <button class="demo-statement" data-name="Sarah" onclick="demoSelect(this)">
+      <div class="demo-name">SARAH</div>
+      <div class="demo-text">"I was at my desk all morning. I didn't leave once. I had my headphones in."</div>
+    </button>
+    <button class="demo-statement" data-name="Devon" onclick="demoSelect(this)">
+      <div class="demo-name">DEVON</div>
+      <div class="demo-text">"I stepped out for a client call around 10. Came back maybe 20 minutes later. The watch was already gone by then."</div>
+    </button>
+  </div>
+
+  <button class="demo-lock-btn" id="demoLockBtn" onclick="demoLock()" disabled>LOCK IN MY READ</button>
+
+  <div class="demo-reveal" id="demoReveal">
+    <div class="demo-reveal-title" id="demoRevealTitle"></div>
+    <div class="demo-reveal-text">Marcus claimed Sarah confirmed his alibi — but the Henderson project meeting was scheduled for the <em>afternoon</em>, not the morning. His alibi collapses under one detail. Devon's timeline checks out. Sarah never confirmed anything.</div>
+    <div style="margin-top:16px; padding-top:16px; border-top:1px solid rgba(232,48,80,0.2)">
+      <div style="font-size:11px; letter-spacing:2px; color:var(--muted); margin-bottom:10px; font-weight:700;">THE FULL GAME HAS 5 ROUNDS + INFINITE AI SCENARIOS</div>
+      <a href="#play" class="btn-primary" style="display:inline-block; font-size:16px; padding:14px 32px;">PLAY THE FULL GAME →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ MODES ═══ -->
+<section class="modes-section reveal" id="play">
+  <div class="section-eyebrow">CHOOSE YOUR MODE</div>
+  <h2 class="section-title">Four ways<br/>to get deceived.</h2>
+
+  <div class="modes-grid">
+    <a href="/play" class="mode-card amber">
+      <div class="mode-icon">▶</div>
+      <div class="mode-name">CLASSIC</div>
+      <div class="mode-desc">Pure deduction. No timer. Just you and your instincts.</div>
+    </a>
+    <a href="/play" class="mode-card red">
+      <div class="mode-icon">⏱</div>
+      <div class="mode-name">TIMED</div>
+      <div class="mode-desc">30 seconds per round. Speed bonuses. Streak multiplier.</div>
+    </a>
+    <a href="/play" class="mode-card purple">
+      <div class="mode-icon">👥</div>
+      <div class="mode-name">LOCAL VS</div>
+      <div class="mode-desc">Pass and play on one device. Live trash talk. No mercy.</div>
+    </a>
+    <a href="/play" class="mode-card teal">
+      <div class="mode-icon">🌐</div>
+      <div class="mode-name">ONLINE VS</div>
+      <div class="mode-desc">Real-time 1v1 anywhere in the world. Room code. Live chat.</div>
+    </a>
+  </div>
+</section>
+
+<!-- ═══ STATS ═══ -->
+<section class="stats-section reveal">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-number" style="color:var(--teal)">4</div>
+      <div class="stat-label">SCENARIO TYPES</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" style="color:var(--amber)">∞</div>
+      <div class="stat-label">AI ROUNDS</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" style="color:var(--red)">4</div>
+      <div class="stat-label">ARCHETYPES</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ HOW IT WORKS ═══ -->
+<section class="how-section" id="how">
+  <div class="section-eyebrow reveal">HOW IT WORKS</div>
+  <h2 class="section-title reveal">Simple rules.<br/>Brutal outcomes.</h2>
+
+  <div class="how-steps">
+    <div class="how-step">
+      <div class="step-icon">👁</div>
+      <div class="step-body">
+        <div class="step-title">Read the scenario</div>
+        <div class="step-desc">Each round drops you into a real situation — a missing item, a suspicious text, a job interview, a viral post. Someone is lying or faking.</div>
+      </div>
+    </div>
+    <div class="how-step">
+      <div class="step-icon">🧠</div>
+      <div class="step-body">
+        <div class="step-title">Spot the deception</div>
+        <div class="step-desc">Read the statements. Notice the inconsistencies. Reveal the psychological clue if you need it — it's free, but the best players don't need it.</div>
+      </div>
+    </div>
+    <div class="how-step">
+      <div class="step-icon">🎯</div>
+      <div class="step-body">
+        <div class="step-title">Lock in your read</div>
+        <div class="step-desc">Pick your suspect AND set your confidence level. Being wrong while certain costs you. Being right when you doubted yourself earns a bonus.</div>
+      </div>
+    </div>
+    <div class="how-step">
+      <div class="step-icon">📊</div>
+      <div class="step-body">
+        <div class="step-title">Get your Deception IQ</div>
+        <div class="step-desc">After five rounds the game profiles you. Your archetype, your blind spot, your score. Screenshot it. Post it. Challenge someone.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ ARCHETYPES ═══ -->
+<section class="archetypes-section">
+  <div class="section-eyebrow reveal">DECEPTION IQ PROFILES</div>
+  <h2 class="section-title reveal">Which one<br/>are you?</h2>
+
+  <div class="archetype-grid">
+    <div class="archetype-card">
+      <div class="archetype-icon">🔦</div>
+      <div class="diq-badge" style="background:rgba(0,212,170,0.12);color:var(--teal);border:1px solid var(--teal)">DIQ 85+</div>
+      <div class="archetype-name">THE INTERROGATOR</div>
+      <div class="archetype-desc">You read people like open books. You catch micro-signals others miss entirely.</div>
+    </div>
+    <div class="archetype-card">
+      <div class="archetype-icon">🔍</div>
+      <div class="diq-badge" style="background:rgba(232,160,48,0.12);color:var(--amber);border:1px solid var(--amber)">DIQ 70–84</div>
+      <div class="archetype-name">THE DETECTIVE</div>
+      <div class="archetype-desc">Methodical and sharp. You look for inconsistencies before making a call.</div>
+    </div>
+    <div class="archetype-card">
+      <div class="archetype-icon">📊</div>
+      <div class="diq-badge" style="background:rgba(124,58,237,0.12);color:var(--purple);border:1px solid var(--purple)">DIQ 55–69</div>
+      <div class="archetype-name">THE ANALYST</div>
+      <div class="archetype-desc">You notice patterns but hesitate to commit. Your instincts are good — trust them more.</div>
+    </div>
+    <div class="archetype-card">
+      <div class="archetype-icon">🫀</div>
+      <div class="diq-badge" style="background:rgba(232,48,80,0.12);color:var(--red);border:1px solid var(--red)">DIQ 20–54</div>
+      <div class="archetype-name">THE EMPATH</div>
+      <div class="archetype-desc">You want to believe people — which makes you unusually good at detecting real distress.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ SOCIAL PROOF ═══ -->
+<section class="social-section">
+  <div class="section-eyebrow reveal">WHAT PLAYERS SAY</div>
+  <h2 class="section-title reveal">The internet<br/>has opinions.</h2>
+
+  <div class="quote-stack">
+    <div class="quote-card">
+      <div class="quote-text">"I got Interrogator on my first try and immediately sent it to my ex. He got Empath. I rest my case."</div>
+      <div class="quote-meta"><span>@lifeofmaria_</span> · TikTok</div>
+    </div>
+    <div class="quote-card">
+      <div class="quote-text">"The timed mode is not for the weak. I panicked, picked the wrong person, AND I was on Certain confidence. The game exposed me."</div>
+      <div class="quote-meta"><span>@jaydenthinks</span> · TikTok</div>
+    </div>
+    <div class="quote-card">
+      <div class="quote-text">"Me and my roommate did VS mode for 2 hours straight. She's never speaking to me again. Worth it."</div>
+      <div class="quote-meta"><span>@tessaandco</span> · Instagram</div>
+    </div>
+    <div class="quote-card">
+      <div class="quote-text">"The body language round legitimately taught me something. I went back and rewatched a conversation I'd had with a coworker. I was right to be suspicious."</div>
+      <div class="quote-meta"><span>@_rk.writes</span> · X</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FINAL CTA ═══ -->
+<section class="final-cta">
+  <div class="section-eyebrow" style="text-align:center">FREE · NO SIGN UP</div>
+  <h2 class="final-title">STOP READING.<br/>START PLAYING.</h2>
+  <p class="final-sub">Your Deception IQ is waiting. Five rounds. Four archetypes. One question: can you see through the lie?</p>
+
+  <!-- Final pulse bar -->
+  <div class="pulse-wrap" id="finalPulse" aria-hidden="true" style="margin-bottom:32px;"></div>
+
+  <div class="cta-group">
+    <a href="/play" class="btn-primary" style="font-size:22px; padding:20px 48px;">PLAY NOW</a>
+  </div>
+  <div style="margin-top:16px; font-size:12px; color:var(--muted);">
+    Share your result: <strong style="color:var(--white)">#DeceptionIQ · #Deceived · #TheInterrogator</strong>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="footer-logo">DECEIVED</div>
+  <div class="footer-links">
+    <a href="#play">Play</a>
+    <a href="#how">How it works</a>
+    <a href="#demo">Try a round</a>
+  </div>
+  <div class="footer-note">© 2025 DECEIVED · Social Intelligence Game · Free to play</div>
+</footer>
+
+<!-- ═══ SCRIPTS ═══ -->
+<script>
+// ── Build pulse bars ──────────────────────────────────────────
+function buildPulse(containerId, barCount) {
+  const wrap = document.getElementById(containerId);
+  if (!wrap) return;
+  const heights = [10, 14, 20, 26, 32, 28, 22, 30, 18, 24, 34, 20, 28, 16, 24, 30, 22, 18, 26, 14];
+  const colors  = ['#00D4AA','#00D4AA','#00D4AA','#00D4AA','#00D4AA','#00D4AA','#00D4AA',
+                   '#E8A030','#E8A030','#E8A030','#E8A030','#E8A030','#E8A030',
+                   '#E83050','#E83050','#E83050','#E83050','#E83050','#E83050','#E83050'];
+  for (let i = 0; i < barCount; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'pulse-bar';
+    bar.style.height = heights[i % heights.length] + 'px';
+    bar.style.background = colors[i % colors.length];
+    bar.style.animationDelay = (i * 0.07) + 's';
+    bar.style.animationDuration = (1.2 + (i % 4) * 0.15) + 's';
+    wrap.appendChild(bar);
+  }
+}
+buildPulse('heroPulse', 20);
+buildPulse('finalPulse', 20);
+
+// ── Evidence tape ─────────────────────────────────────────────
+const TAPE_FACTS = [
+  "Liars use more words to compensate for missing details",
+  "The Henderson meeting was in the afternoon",
+  "Microexpressions last 1/25th of a second",
+  "Genuine smiles reach the eyes — fake ones don't",
+  "Overconfidence when wrong costs you points",
+  "Real grief lives in embarrassingly specific details",
+  "Preemptive defense assumes guilt before accusation",
+  "Body language leaks truth in clusters not isolated signals",
+  "AI writing avoids the embarrassing specific",
+  "DARVO: Deny Attack Reverse Victim and Offender",
+  "Strategic partial truths are harder to detect than flat lies",
+  "The clue is free — but the best players don't need it",
+  "'I know how this looks' is not what innocent people say",
+  "Self-touch during high-stakes questions signals stress",
+  "Postural retreat when referencing a threat is involuntary",
+];
+const track = document.getElementById('tapeTrack');
+const doubled = [...TAPE_FACTS, ...TAPE_FACTS]; // duplicate for seamless loop
+doubled.forEach(fact => {
+  const item = document.createElement('div');
+  item.className = 'tape-item';
+  item.textContent = fact;
+  track.appendChild(item);
+});
+
+// ── Demo interaction ──────────────────────────────────────────
+let demoSelected = null;
+let demoLocked = false;
+
+function demoSelect(el) {
+  if (demoLocked) return;
+  document.querySelectorAll('.demo-statement').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  demoSelected = el.dataset.name;
+  document.getElementById('demoLockBtn').disabled = false;
+}
+
+function demoLock() {
+  if (!demoSelected || demoLocked) return;
+  demoLocked = true;
+  document.getElementById('demoLockBtn').disabled = true;
+  document.getElementById('demoLockBtn').textContent = 'LOCKED IN';
+
+  const LIAR = 'Marcus';
+  const correct = demoSelected === LIAR;
+
+  document.querySelectorAll('.demo-statement').forEach(s => {
+    if (s.dataset.name === LIAR) s.classList.add('liar');
+  });
+
+  const reveal = document.getElementById('demoReveal');
+  const title  = document.getElementById('demoRevealTitle');
+
+  reveal.style.borderColor = correct ? 'var(--teal)' : 'var(--red)';
+  reveal.style.background  = correct ? 'rgba(0,212,170,0.10)' : 'rgba(232,48,80,0.10)';
+  title.style.color = correct ? 'var(--teal)' : 'var(--red)';
+  title.textContent = correct ? '✓ YOU SAW THROUGH IT' : '✗ DECEIVED — IT WAS MARCUS';
+
+  reveal.classList.add('visible');
+  reveal.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ── Scroll reveal ─────────────────────────────────────────────
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.reveal, .how-step, .archetype-card, .quote-card').forEach(el => {
+  observer.observe(el);
+});
+
+// ── Stagger archetype cards ───────────────────────────────────
+document.querySelectorAll('.archetype-card').forEach((card, i) => {
+  card.style.transitionDelay = (i * 0.1) + 's';
+});
+document.querySelectorAll('.quote-card').forEach((card, i) => {
+  card.style.transitionDelay = (i * 0.08) + 's';
+});
+</script>
+</body>
+</html>
