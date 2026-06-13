@@ -165,6 +165,33 @@ html,body{min-height:100%;background:#0A0C12;color:#F0F2F8;font-family:'Inter',s
 .modal-input:focus{border-color:var(--amber)}
 .modal-btns{display:flex;gap:10px}
 .hidden{display:none!important}
+
+/* Interstitial */
+#interstitial-screen{justify-content:center}
+#interstitial-screen::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:5;background:repeating-linear-gradient(0deg,transparent 0,transparent 2px,rgba(0,0,0,.15) 3px,transparent 4px);opacity:.4}
+.inter-inner{max-width:560px;width:100%;position:relative}
+.classified-stamp{position:absolute;top:-14px;right:6px;z-index:4;border:3px solid var(--red);color:var(--red);font-family:'Bebas Neue',Impact,sans-serif;font-size:20px;letter-spacing:3px;padding:4px 14px;transform:rotate(8deg);opacity:0;animation:stampIn .4s ease-out .3s forwards}
+@keyframes stampIn{0%{opacity:0;transform:rotate(8deg) scale(2)}60%{opacity:1;transform:rotate(8deg) scale(.95)}100%{opacity:.85;transform:rotate(8deg) scale(1)}}
+.case-header{font-family:'Courier New',monospace;font-size:11px;letter-spacing:2px;color:var(--muted);margin-bottom:20px;opacity:0;animation:interFade .5s ease forwards .1s}
+.case-header .blink{animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.polygraph{background:#0d1119;border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:24px;position:relative;overflow:hidden;opacity:0;animation:interFade .5s ease forwards .2s}
+.poly-label{font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;color:var(--teal);margin-bottom:10px;display:flex;justify-content:space-between}
+.poly-svg{width:100%;height:80px;display:block}
+.poly-line{fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.quote-block{border-left:3px solid var(--amber);padding-left:20px;margin-bottom:28px;opacity:0;animation:interFade .6s ease forwards .6s}
+.quote-text{font-size:clamp(17px,4vw,23px);line-height:1.5;color:var(--white);font-weight:600;font-style:italic;margin-bottom:10px}
+.quote-attr{font-size:12px;letter-spacing:2px;color:var(--muted);font-weight:700}
+.level-reveal{text-align:center;border-top:1px solid var(--border);padding-top:24px;opacity:0;animation:interFade .6s ease forwards 1s}
+.lr-label{font-size:11px;letter-spacing:4px;color:var(--muted);font-weight:700;margin-bottom:8px}
+.lr-number{font-family:'Bebas Neue',Impact,sans-serif;font-size:14px;letter-spacing:3px;margin-bottom:4px}
+.lr-name{font-family:'Bebas Neue',Impact,sans-serif;font-size:clamp(44px,10vw,64px);line-height:1;letter-spacing:2px;color:var(--white);margin-bottom:8px}
+.lr-tagline{font-size:13px;color:var(--muted);margin-bottom:24px}
+.enter-btn{background:var(--amber);color:var(--bg);border:none;border-radius:6px;padding:16px 48px;font-family:'Bebas Neue',Impact,sans-serif;font-size:18px;letter-spacing:3px;cursor:pointer;transition:transform .1s;opacity:0;animation:interFade .5s ease forwards 1.3s}
+.enter-btn:active{transform:scale(.96)}
+@keyframes interFade{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.inter-skip{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:none;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer;z-index:10}
+
 @media(max-width:480px){.sub-btns{gap:8px}.mode-card{padding:14px 10px}}
 </style>
 </head>
@@ -245,6 +272,34 @@ html,body{min-height:100%;background:#0A0C12;color:#F0F2F8;font-family:'Inter',s
     <p style="color:var(--muted);font-size:15px;line-height:1.7;margin-bottom:40px">Your turn. Same scenario — fresh eyes.<br><strong style="color:var(--white)">Don't let them see your answer.</strong></p>
     <button class="btn btn-amber" style="font-size:18px;padding:16px 48px" onclick="readyPass()">I'M READY →</button>
   </div>
+</div>
+
+<!-- INTERSTITIAL -->
+<div id="interstitial-screen" class="screen">
+  <div class="inter-inner">
+    <div class="classified-stamp">CLASSIFIED</div>
+    <div class="case-header" id="interCaseHeader">CASE FILE #001 · CLEARANCE GRANTED · DECRYPTING<span class="blink">_</span></div>
+    <div class="polygraph">
+      <div class="poly-label"><span>◉ POLYGRAPH · LIVE</span><span>DECEPTION DETECTED</span></div>
+      <svg class="poly-svg" id="polySvg" viewBox="0 0 520 80" preserveAspectRatio="none">
+        <line x1="0" y1="40" x2="520" y2="40" stroke="#1E2235" stroke-width="1"/>
+        <path class="poly-line" id="polyPath1" stroke="#00D4AA" d=""/>
+        <path class="poly-line" id="polyPath2" stroke="#E8A030" d="" opacity="0.6"/>
+      </svg>
+    </div>
+    <div class="quote-block">
+      <div class="quote-text" id="interQuote"></div>
+      <div class="quote-attr">— DECEIVED · FIELD NOTES</div>
+    </div>
+    <div class="level-reveal">
+      <div class="lr-label">NOW ENTERING</div>
+      <div class="lr-number" id="interLrNumber">LEVEL 1</div>
+      <div class="lr-name" id="interLrName"></div>
+      <div class="lr-tagline" id="interLrTagline"></div>
+      <button class="enter-btn" id="interEnterBtn">ENTER →</button>
+    </div>
+  </div>
+  <button class="inter-skip" id="interSkip">Skip →</button>
 </div>
 
 <!-- GAME -->
@@ -420,6 +475,53 @@ function buildProfile(results){const correct=results.filter(r=>r.correct).length
 function iqColor(iq){return iq>=80?C.teal:iq>=60?C.amber:C.red;}
 function calcStars(correct,total){const pct=correct/total;return pct>=0.9?3:pct>=0.7?2:pct>=0.5?1:0;}
 
+// ── Interstitials (Twilight Zone voice) ──
+const INTERSTITIALS = {
+  1: { quote: "You believe you can tell when you are being lied to. That belief is the first lie. We will be testing it.", color:"#00D4AA" },
+  2: { quote: "Somewhere in this building, a person is smiling at you and meaning none of it. You have met them already. You did not notice.", color:"#E8A030" },
+  3: { quote: "The truth leaves fingerprints. So does a careful lie. The difference is that one of them wants to be found.", color:"#7C3AED" },
+  4: { quote: "They studied the way you decide who to trust. They practiced in mirrors. When they reach you, you will feel certain — and that is how you will know.", color:"#E8A030" },
+  5: { quote: "The finest liars do not break a sweat, because they are no longer lying. They have come to believe it. So, by the end of this, will you.", color:"#E83050" },
+};
+
+function generatePolyPath(seed, amplitude, spikeAt){
+  let d='M 0 40';
+  for(let x=0;x<=520;x+=4){
+    let y=40+Math.sin(x*0.08+seed)*(amplitude*0.4)+Math.sin(x*0.23+seed)*(amplitude*0.25);
+    const dist=Math.abs(x-spikeAt);
+    if(dist<30)y+=Math.sin((30-dist)*0.2)*amplitude*1.4*(x<spikeAt?1:-1);
+    d+=` L ${x} ${y.toFixed(1)}`;
+  }
+  return d;
+}
+function animatePoly(){
+  const p1=document.getElementById('polyPath1'),p2=document.getElementById('polyPath2');
+  p1.setAttribute('d',generatePolyPath(1,14,360));
+  p2.setAttribute('d',generatePolyPath(3,9,360));
+  [p1,p2].forEach((p,i)=>{const len=p.getTotalLength();p.style.strokeDasharray=len;p.style.strokeDashoffset=len;p.style.transition='none';requestAnimationFrame(()=>{p.style.transition=`stroke-dashoffset 2s ease-out ${0.3+i*0.2}s`;p.style.strokeDashoffset='0';});});
+}
+function showInterstitial(levelId, onEnter){
+  const lv=LEVELS.find(l=>l.id===levelId);if(!lv){onEnter();return;}
+  const data=INTERSTITIALS[levelId]||INTERSTITIALS[1];
+  document.getElementById('interCaseHeader').innerHTML=`CASE FILE #${String(levelId).padStart(3,'0')} · CLEARANCE GRANTED · DECRYPTING<span class="blink">_</span>`;
+  document.getElementById('interQuote').textContent='"'+data.quote+'"';
+  document.getElementById('interLrNumber').textContent='LEVEL '+levelId;
+  document.getElementById('interLrNumber').style.color=lv.color;
+  document.getElementById('interLrName').textContent=lv.name.toUpperCase();
+  document.getElementById('interLrTagline').textContent=lv.tagline;
+  document.querySelector('.classified-stamp').style.borderColor=data.color;
+  document.querySelector('.classified-stamp').style.color=data.color;
+  // Re-trigger animations
+  document.querySelectorAll('#interstitial-screen .classified-stamp,#interstitial-screen .case-header,#interstitial-screen .polygraph,#interstitial-screen .quote-block,#interstitial-screen .level-reveal,#interstitial-screen .enter-btn').forEach(n=>{n.style.animation='none';n.offsetHeight;n.style.animation='';});
+  const go=()=>{onEnter();};
+  document.getElementById('interEnterBtn').onclick=go;
+  document.getElementById('interSkip').onclick=go;
+  showScreen('interstitial-screen');
+  setTimeout(animatePoly,50);
+  // soft tension hum during interstitial
+  startAmbient();
+}
+
 // ── Daily challenge ──
 function getDailySeed(){const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();}
 function seededRandom(seed){let s=seed%2147483647;if(s<=0)s+=2147483646;return()=>{s=s*16807%2147483647;return(s-1)/2147483646;};}
@@ -462,6 +564,10 @@ function showLevelSelect(){
 
 // ── Start modes ──
 function startLevel(id){
+  const lv=LEVELS.find(l=>l.id===id);if(!lv)return;
+  showInterstitial(id, ()=>beginLevel(id));
+}
+function beginLevel(id){
   const lv=LEVELS.find(l=>l.id===id);if(!lv)return;
   state.mode='level';state.levelId=id;state.levelMeta=lv;state.timed=false;
   state.scenarios=[...lv.scenarios];
@@ -573,7 +679,6 @@ function showLevelComplete(profile,stars,unlocked){
   setTimeout(()=>{playProfileReveal();if(stars>=1)setTimeout(playLevelUp,400);setTimeout(()=>showNameModal(),700);},400);
 }
 function nextLevel(){if(state.levelId<LEVELS.length){startLevel(state.levelId+1);}else showLevelSelect();}
-
 // ── Name modal ──
 function showNameModal(){const p=state.profile;if(!p)return;const ic=iqColor(p.iq);const c=document.getElementById('modalCircle');c.style.borderColor=ic;c.style.background=ic+'10';document.getElementById('modalIQ').style.color=ic;document.getElementById('modalIQ').textContent=p.iq;document.getElementById('modalArchetype').textContent=p.archetype;document.getElementById('modalSub').textContent=`${p.correct} of ${p.total} correct — post to the board?`;document.getElementById('nameInput').value='';document.getElementById('nameModal').classList.remove('hidden');setTimeout(()=>document.getElementById('nameInput').focus(),100);}
 function submitName(){const name=document.getElementById('nameInput').value.trim();if(!name)return;const p=state.profile;const entry={name,diq:p.iq,archetype:p.archetype,correct:p.correct,total:p.total,level:state.levelMeta?state.levelMeta.name:'Quick',date:Date.now()};saveLB(entry);state.lastEntry=entry;document.getElementById('nameModal').classList.add('hidden');playLevelUp();}

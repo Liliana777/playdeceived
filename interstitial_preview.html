@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DECEIVED — Interstitial Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0A0C12;--panel:#11141E;--border:#1E2235;--amber:#E8A030;--teal:#00D4AA;--red:#E83050;--white:#F0F2F8;--muted:#6B7280;--card:#161A28;--purple:#7C3AED}
+body{background:var(--bg);color:var(--white);font-family:'Inter',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;overflow:hidden}
+
+.interstitial{max-width:560px;width:100%;position:relative}
+
+/* Scanline overlay */
+.interstitial::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:5;
+  background:repeating-linear-gradient(0deg,transparent 0,transparent 2px,rgba(0,0,0,.15) 3px,transparent 4px);
+  opacity:.4;
+}
+
+/* CLASSIFIED stamp */
+.classified-stamp{
+  position:absolute;top:-10px;right:10px;z-index:4;
+  border:3px solid var(--red);color:var(--red);
+  font-family:'Bebas Neue',Impact,sans-serif;font-size:20px;letter-spacing:3px;
+  padding:4px 14px;transform:rotate(8deg);opacity:0;
+  animation:stampIn .4s ease-out .3s forwards;
+}
+@keyframes stampIn{0%{opacity:0;transform:rotate(8deg) scale(2)}60%{opacity:1;transform:rotate(8deg) scale(.95)}100%{opacity:.85;transform:rotate(8deg) scale(1)}}
+
+/* Case file header */
+.case-header{
+  font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:2px;
+  color:var(--muted);margin-bottom:20px;opacity:0;
+  animation:fadeUp .5s ease forwards .1s;
+}
+.case-header .blink{animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* Polygraph */
+.polygraph{
+  background:#0d1119;border:1px solid var(--border);border-radius:8px;
+  padding:20px;margin-bottom:24px;position:relative;overflow:hidden;
+  opacity:0;animation:fadeUp .5s ease forwards .2s;
+}
+.poly-label{
+  font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;
+  color:var(--teal);margin-bottom:10px;display:flex;justify-content:space-between;
+}
+.poly-svg{width:100%;height:80px;display:block}
+.poly-line{fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+
+/* Quote */
+.quote-block{
+  border-left:3px solid var(--amber);padding-left:20px;margin-bottom:28px;
+  opacity:0;animation:fadeUp .6s ease forwards .6s;
+}
+.quote-text{
+  font-size:clamp(18px,4vw,24px);line-height:1.5;color:var(--white);
+  font-weight:600;font-style:italic;margin-bottom:10px;
+}
+.quote-attr{font-size:12px;letter-spacing:2px;color:var(--muted);font-weight:700}
+
+/* Level reveal */
+.level-reveal{
+  text-align:center;border-top:1px solid var(--border);padding-top:24px;
+  opacity:0;animation:fadeUp .6s ease forwards 1s;
+}
+.lr-label{font-size:11px;letter-spacing:4px;color:var(--muted);font-weight:700;margin-bottom:8px}
+.lr-number{font-family:'Bebas Neue',Impact,sans-serif;font-size:14px;letter-spacing:3px;margin-bottom:4px}
+.lr-name{font-family:'Bebas Neue',Impact,sans-serif;font-size:clamp(44px,10vw,68px);line-height:1;letter-spacing:2px;color:var(--white);margin-bottom:8px}
+.lr-tagline{font-size:13px;color:var(--muted);margin-bottom:24px}
+
+.enter-btn{
+  background:var(--amber);color:var(--bg);border:none;border-radius:6px;
+  padding:16px 48px;font-family:'Bebas Neue',Impact,sans-serif;font-size:18px;
+  letter-spacing:3px;cursor:pointer;transition:transform .1s;
+  opacity:0;animation:fadeUp .5s ease forwards 1.3s;
+}
+.enter-btn:active{transform:scale(.96)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.replay{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:none;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer;z-index:10}
+</style>
+</head>
+<body>
+
+<div class="interstitial" id="inter">
+  <div class="classified-stamp">CLASSIFIED</div>
+
+  <div class="case-header">
+    CASE FILE #002 · CLEARANCE GRANTED · DECRYPTING<span class="blink">_</span>
+  </div>
+
+  <div class="polygraph">
+    <div class="poly-label">
+      <span>◉ POLYGRAPH · LIVE</span>
+      <span id="polyStatus">DECEPTION DETECTED</span>
+    </div>
+    <svg class="poly-svg" id="polySvg" viewBox="0 0 520 80" preserveAspectRatio="none">
+      <line x1="0" y1="40" x2="520" y2="40" stroke="#1E2235" stroke-width="1"/>
+      <path class="poly-line" id="polyPath1" stroke="#00D4AA" d=""/>
+      <path class="poly-line" id="polyPath2" stroke="#E8A030" d="" opacity="0.6"/>
+    </svg>
+  </div>
+
+  <div class="quote-block">
+    <div class="quote-text" id="quoteText">"Everyone has a tell. The trained ones just move it somewhere you forgot to look."</div>
+    <div class="quote-attr">— DECEIVED · FIELD NOTES</div>
+  </div>
+
+  <div class="level-reveal">
+    <div class="lr-label">NOW ENTERING</div>
+    <div class="lr-number" id="lrNumber" style="color:#E8A030">LEVEL 2</div>
+    <div class="lr-name" id="lrName">THE INVESTIGATOR</div>
+    <div class="lr-tagline" id="lrTagline">The lies get more convincing</div>
+    <button class="enter-btn" onclick="replay()">ENTER →</button>
+  </div>
+</div>
+
+<button class="replay" onclick="replay()">↻ Replay animation</button>
+
+<script>
+// Animated polygraph line that draws across as if live
+function generatePolyPath(seed, amplitude, spikeAt){
+  let d = 'M 0 40';
+  for(let x = 0; x <= 520; x += 4){
+    let y = 40 + Math.sin(x * 0.08 + seed) * (amplitude * 0.4) + Math.sin(x * 0.23 + seed) * (amplitude * 0.25);
+    // Add a deception "spike" at a point
+    const dist = Math.abs(x - spikeAt);
+    if(dist < 30) y += Math.sin((30 - dist) * 0.2) * amplitude * 1.4 * (x < spikeAt ? 1 : -1);
+    d += ` L ${x} ${y.toFixed(1)}`;
+  }
+  return d;
+}
+
+function animatePoly(){
+  const p1 = document.getElementById('polyPath1');
+  const p2 = document.getElementById('polyPath2');
+  p1.setAttribute('d', generatePolyPath(1, 14, 360));
+  p2.setAttribute('d', generatePolyPath(3, 9, 360));
+  // Draw-on animation via stroke-dash
+  [p1, p2].forEach((p, i) => {
+    const len = p.getTotalLength();
+    p.style.strokeDasharray = len;
+    p.style.strokeDashoffset = len;
+    p.style.transition = 'none';
+    requestAnimationFrame(() => {
+      p.style.transition = `stroke-dashoffset 2s ease-out ${0.3 + i*0.2}s`;
+      p.style.strokeDashoffset = '0';
+    });
+  });
+}
+
+function replay(){
+  const el = document.getElementById('inter');
+  el.querySelectorAll('.classified-stamp,.case-header,.polygraph,.quote-block,.level-reveal,.enter-btn').forEach(n=>{
+    n.style.animation='none';n.offsetHeight;n.style.animation='';
+  });
+  animatePoly();
+}
+
+animatePoly();
+</script>
+</body>
+</html>
