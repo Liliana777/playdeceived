@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content="DECEIVED — The social intelligence game. Can you spot the lie?"/>
+<meta property="og:title" content="DECEIVED — What's your Deception IQ?"/>
+<meta property="og:description" content="5 levels. 57 scenarios. Daily challenges. Can you spot the lie?"/>
+<meta name="theme-color" content="#0A0C12"/>
+<title>DECEIVED — Play</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:#0A0C12;color:#F0F2F8;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+:root{--bg:#0A0C12;--panel:#11141E;--border:#1E2235;--amber:#E8A030;--teal:#00D4AA;--red:#E83050;--white:#F0F2F8;--muted:#6B7280;--card:#161A28;--purple:#7C3AED;--gold:#FFD700}
+.screen{display:none;min-height:100vh;padding:24px 20px 60px}
+.screen.active{display:flex;flex-direction:column;align-items:center}
+#home-screen,#levelselect-screen{justify-content:flex-start}
+
+/* Home */
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:5px;color:var(--teal);margin-bottom:16px}
+.logo{font-family:'Bebas Neue',Impact,sans-serif;font-size:clamp(64px,15vw,110px);color:var(--white);line-height:.9;letter-spacing:2px}
+.divider{width:60px;height:3px;background:var(--amber);margin:20px auto}
+.hero-sub{color:var(--muted);font-size:15px;line-height:1.7;max-width:480px;margin-bottom:24px;text-align:center}
+.hero-sub strong{color:var(--white)}
+.pulse-row{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:8px}
+.pulse-wrap{display:flex;gap:3px;align-items:flex-end;height:32px}
+.pulse-bar{width:6px;border-radius:2px;transition:height .12s ease}
+.pulse-label{font-size:11px;letter-spacing:3px;color:var(--muted);font-weight:700;margin-bottom:24px;text-align:center}
+.home-btns{display:flex;flex-direction:column;gap:12px;width:100%;max-width:440px}
+.big-btn{border:none;border-radius:10px;padding:20px;cursor:pointer;font-family:'Bebas Neue',Impact,sans-serif;font-size:22px;letter-spacing:2px;display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .15s}
+.big-btn:active{transform:scale(.97)}
+.sub-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mode-card{border:none;border-radius:10px;padding:18px 14px;cursor:pointer;text-align:center;transition:transform .15s;font-family:'Inter',sans-serif}
+.mode-card:active{transform:scale(.96)}
+.mode-icon{font-size:24px;margin-bottom:6px}
+.mode-name{font-family:'Bebas Neue',Impact,sans-serif;font-size:18px;letter-spacing:2px;margin-bottom:4px}
+.mode-desc{font-size:11px;opacity:.75}
+.lb-btn{width:100%;background:none;border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;color:var(--muted);font-family:'Bebas Neue',Impact,sans-serif;font-size:16px;letter-spacing:2px}
+.sound-btn{background:none;border:1px solid var(--border);border-radius:6px;font-size:16px;cursor:pointer;padding:6px 10px;line-height:1;color:var(--amber)}
+
+/* Level Select */
+.ls-header{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:560px;margin:0 auto 20px}
+.ls-back{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:13px;cursor:pointer;padding:8px 14px;font-family:'Inter',sans-serif}
+.ls-title{font-family:'Bebas Neue',Impact,sans-serif;font-size:28px;color:var(--white);letter-spacing:3px}
+.daily-card{width:100%;max-width:560px;margin:0 auto 16px;background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(0,212,170,.1));border:1.5px solid var(--purple);border-radius:12px;padding:20px;cursor:pointer;transition:transform .15s}
+.daily-card:active{transform:scale(.98)}
+.daily-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.daily-label{font-size:11px;letter-spacing:3px;color:var(--purple);font-weight:700}
+.daily-timer{font-size:12px;color:var(--muted);font-family:'Bebas Neue',Impact,sans-serif;letter-spacing:1px}
+.daily-name{font-family:'Bebas Neue',Impact,sans-serif;font-size:26px;color:var(--white);letter-spacing:1px;margin-bottom:4px}
+.daily-desc{font-size:13px;color:var(--muted)}
+.levels-list{width:100%;max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.level-card{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:18px 20px;cursor:pointer;transition:transform .15s,border-color .2s;display:flex;align-items:center;gap:16px}
+.level-card:active{transform:scale(.98)}
+.level-card.locked{opacity:.5;cursor:not-allowed}
+.level-num{font-family:'Bebas Neue',Impact,sans-serif;font-size:40px;line-height:1;min-width:48px;text-align:center}
+.level-info{flex:1;min-width:0}
+.level-name{font-family:'Bebas Neue',Impact,sans-serif;font-size:24px;color:var(--white);letter-spacing:1px;line-height:1;margin-bottom:4px}
+.level-tagline{font-size:12px;color:var(--muted);margin-bottom:6px}
+.level-meta{display:flex;gap:10px;align-items:center;font-size:11px;color:var(--muted);font-weight:600}
+.level-stars{font-size:14px;letter-spacing:2px}
+.level-right{text-align:right}
+.level-count{font-family:'Bebas Neue',Impact,sans-serif;font-size:20px;color:var(--muted)}
+.level-lock-icon{font-size:24px}
+
+/* Game */
+#game-screen{align-items:center}
+.game-inner{max-width:640px;width:100%}
+.game-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;width:100%}
+.game-logo{font-family:'Bebas Neue',Impact,sans-serif;font-size:20px;color:var(--white);letter-spacing:2px}
+.game-level-badge{font-size:10px;letter-spacing:1px;font-weight:700;border-radius:4px;padding:3px 8px;border-width:1px;border-style:solid}
+.game-header-right{display:flex;align-items:center;gap:10px}
+.tension-label{font-size:10px;letter-spacing:1px;font-weight:700;transition:color .5s}
+.round-label{font-size:12px;color:var(--muted)}
+.timer-display{font-family:'Bebas Neue',Impact,sans-serif;font-size:22px;transition:color .3s}
+.streak-badge{font-size:12px;font-weight:800;color:var(--red)}
+.progress-bar{height:3px;background:var(--border);border-radius:2px;margin-bottom:6px;width:100%}
+.progress-fill{height:100%;background:var(--amber);border-radius:2px;transition:width .4s ease}
+.tension-bar{height:2px;background:var(--border);border-radius:2px;margin-bottom:20px;overflow:hidden;width:100%}
+.tension-fill{height:100%;border-radius:2px;transition:width .7s ease}
+.time-bar{height:3px;background:var(--border);border-radius:2px;margin-bottom:20px;overflow:hidden;width:100%}
+.time-fill{height:100%;border-radius:2px;transition:width 1s linear}
+.bonus-flash{text-align:center;padding:10px;margin-bottom:10px;font-family:'Bebas Neue',Impact,sans-serif;font-size:22px;letter-spacing:2px;border-radius:6px;display:none}
+.scenario-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:24px;margin-bottom:16px;width:100%}
+.scenario-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.type-badge{font-size:10px;font-weight:700;letter-spacing:2px;border-radius:3px;padding:3px 8px;border-width:1px;border-style:solid}
+.scenario-title{color:var(--white);font-weight:700;font-size:17px}
+.scenario-setup{color:var(--muted);font-size:14px;line-height:1.7;margin:0}
+.statements{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;width:100%}
+.statement-btn{background:var(--panel);border:2px solid var(--border);border-radius:8px;padding:18px 20px;text-align:left;cursor:pointer;transition:all .2s;width:100%;font-family:'Inter',sans-serif}
+.statement-btn:hover:not(:disabled){border-color:var(--amber);background:rgba(232,160,48,.08)}
+.statement-btn.selected{border-color:var(--amber);background:rgba(232,160,48,.12)}
+.statement-btn.is-liar{border-color:var(--red);background:rgba(232,48,80,.12)}
+.statement-btn:disabled{cursor:default}
+.stmt-name{font-weight:700;font-size:11px;letter-spacing:2px;color:var(--muted);margin-bottom:8px}
+.statement-btn.selected .stmt-name{color:var(--amber)}
+.statement-btn.is-liar .stmt-name{color:var(--red)}
+.stmt-text{color:var(--white);font-size:14px;line-height:1.65}
+.clue-btn{width:100%;background:none;border:1px solid var(--border);border-radius:6px;padding:10px 16px;color:var(--muted);font-size:13px;cursor:pointer;margin-bottom:12px;font-family:'Inter',sans-serif;transition:border-color .2s}
+.clue-btn:hover{border-color:var(--teal)}
+.clue-box{background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.3);border-radius:6px;padding:14px 16px;margin-bottom:12px;width:100%}
+.clue-label{font-size:10px;letter-spacing:2px;color:var(--teal);margin-bottom:6px;font-weight:700}
+.clue-text{color:var(--white);font-size:13px;line-height:1.6}
+.conf-box{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:18px;margin-bottom:16px;width:100%;transition:border-color .5s}
+.conf-label{font-size:11px;letter-spacing:2px;color:var(--muted);margin-bottom:10px;font-weight:700}
+.conf-slider{width:100%;margin-top:10px;accent-color:var(--amber)}
+.conf-value{text-align:center;color:var(--amber);font-weight:700;font-size:14px;margin-top:6px}
+.lock-btn{width:100%;background:var(--amber);color:var(--bg);border:none;border-radius:6px;padding:16px;font-size:15px;font-weight:800;letter-spacing:2px;cursor:pointer;font-family:'Bebas Neue',Impact,sans-serif;transition:background .2s}
+.lock-btn:disabled{background:var(--border);color:var(--muted);cursor:not-allowed}
+.reveal-box{width:100%;border-radius:8px;padding:20px;margin-bottom:14px;opacity:0;transform:translateY(12px);transition:all .4s ease}
+.reveal-box.show{opacity:1;transform:translateY(0)}
+.reveal-title{font-family:'Bebas Neue',Impact,sans-serif;font-size:26px;margin-bottom:8px}
+.reveal-text{color:var(--white);font-size:14px;line-height:1.65;margin:0}
+.next-btn{width:100%;background:var(--white);color:var(--bg);border:none;border-radius:6px;padding:16px;font-size:15px;font-weight:800;letter-spacing:2px;cursor:pointer;font-family:'Bebas Neue',Impact,sans-serif}
+
+/* Level complete */
+#levelcomplete-screen{justify-content:center;text-align:center}
+.lc-stars{font-size:48px;letter-spacing:8px;margin-bottom:20px}
+.lc-title{font-family:'Bebas Neue',Impact,sans-serif;font-size:48px;letter-spacing:2px;margin-bottom:8px}
+.lc-level-name{color:var(--muted);font-size:15px;margin-bottom:28px}
+.lc-score-circle{width:140px;height:140px;border-radius:50%;margin:0 auto 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-width:5px;border-style:solid}
+.lc-score-num{font-family:'Bebas Neue',Impact,sans-serif;font-size:56px;line-height:1}
+.lc-score-label{font-size:10px;letter-spacing:2px;color:var(--muted);font-weight:700}
+.lc-stat-row{display:flex;gap:12px;justify-content:center;margin-bottom:28px}
+.lc-stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px 24px;text-align:center}
+.lc-stat-num{font-family:'Bebas Neue',Impact,sans-serif;font-size:32px;line-height:1}
+.lc-stat-label{font-size:10px;letter-spacing:1px;color:var(--muted);font-weight:700;margin-top:4px}
+
+/* Profile/shared */
+.action-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:4px}
+.btn{border:none;border-radius:6px;padding:13px 24px;font-size:14px;font-weight:800;letter-spacing:2px;cursor:pointer;font-family:'Bebas Neue',Impact,sans-serif;transition:opacity .15s}
+.btn:hover{opacity:.88}
+.btn-amber{background:var(--amber);color:var(--bg)}
+.btn-teal{background:var(--teal);color:var(--bg)}
+.btn-outline{background:none;border:1px solid var(--border);color:var(--muted);font-family:'Inter',sans-serif;font-size:13px;font-weight:400;letter-spacing:0}
+.btn-sm{padding:8px 14px;font-size:13px}
+
+/* Leaderboard */
+#leaderboard-screen{align-items:center}
+.lb-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;width:100%;max-width:560px}
+.lb-title{font-family:'Bebas Neue',Impact,sans-serif;font-size:28px;color:var(--white);letter-spacing:3px}
+.lb-eyebrow{font-size:11px;letter-spacing:3px;color:var(--muted);text-align:center;margin-bottom:18px;font-weight:700;width:100%;max-width:560px}
+.lb-entry{background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:16px 20px;display:flex;align-items:center;gap:14px;margin-bottom:8px;width:100%;max-width:560px}
+.lb-entry.highlight{background:rgba(232,160,48,.1);border-color:var(--amber)}
+.lb-rank{font-family:'Bebas Neue',Impact,sans-serif;font-size:22px;min-width:32px;text-align:center}
+.lb-info{flex:1;min-width:0}
+.lb-name-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.lb-name{color:var(--white);font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.you-badge{font-size:10px;color:var(--amber);font-weight:700;letter-spacing:1px;border:1px solid var(--amber);border-radius:3px;padding:1px 5px}
+.lb-meta{display:flex;gap:8px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.lb-diq{text-align:right}
+.lb-diq-num{font-family:'Bebas Neue',Impact,sans-serif;font-size:28px;line-height:1}
+.lb-diq-label{font-size:9px;letter-spacing:1px;color:var(--muted);font-weight:700}
+.lb-empty{text-align:center;padding:60px 20px;width:100%}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal-box{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:36px 28px;max-width:400px;width:100%;text-align:center}
+.modal-circle{width:100px;height:100px;border-radius:50%;margin:0 auto 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-width:4px;border-style:solid}
+.modal-iq{font-family:'Bebas Neue',Impact,sans-serif;font-size:42px;line-height:1}
+.modal-archetype{font-family:'Bebas Neue',Impact,sans-serif;font-size:28px;color:var(--white);letter-spacing:2px;margin-bottom:6px}
+.modal-sub{color:var(--muted);font-size:13px;margin-bottom:24px}
+.modal-input{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:6px;color:var(--white);font-size:16px;padding:12px 14px;outline:none;font-family:'Inter',sans-serif;box-sizing:border-box;margin-bottom:14px}
+.modal-input:focus{border-color:var(--amber)}
+.modal-btns{display:flex;gap:10px}
+.hidden{display:none!important}
+
+/* Interstitial */
+#interstitial-screen{justify-content:center}
+#interstitial-screen::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:5;background:repeating-linear-gradient(0deg,transparent 0,transparent 2px,rgba(0,0,0,.15) 3px,transparent 4px);opacity:.4}
+.inter-inner{max-width:560px;width:100%;position:relative}
+.classified-stamp{position:absolute;top:-14px;right:6px;z-index:4;border:3px solid var(--red);color:var(--red);font-family:'Bebas Neue',Impact,sans-serif;font-size:20px;letter-spacing:3px;padding:4px 14px;transform:rotate(8deg);opacity:0;animation:stampIn .4s ease-out .3s forwards}
+@keyframes stampIn{0%{opacity:0;transform:rotate(8deg) scale(2)}60%{opacity:1;transform:rotate(8deg) scale(.95)}100%{opacity:.85;transform:rotate(8deg) scale(1)}}
+.case-header{font-family:'Courier New',monospace;font-size:11px;letter-spacing:2px;color:var(--muted);margin-bottom:20px;opacity:0;animation:interFade .5s ease forwards .1s}
+.case-header .blink{animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.polygraph{background:#0d1119;border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:24px;position:relative;overflow:hidden;opacity:0;animation:interFade .5s ease forwards .2s}
+.poly-label{font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;color:var(--teal);margin-bottom:10px;display:flex;justify-content:space-between}
+.poly-svg{width:100%;height:80px;display:block}
+.poly-line{fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.quote-block{border-left:3px solid var(--amber);padding-left:20px;margin-bottom:28px;opacity:0;animation:interFade .6s ease forwards .6s}
+.quote-text{font-size:clamp(17px,4vw,23px);line-height:1.5;color:var(--white);font-weight:600;font-style:italic;margin-bottom:10px}
+.quote-attr{font-size:12px;letter-spacing:2px;color:var(--muted);font-weight:700}
+.level-reveal{text-align:center;border-top:1px solid var(--border);padding-top:24px;opacity:0;animation:interFade .6s ease forwards 1s}
+.lr-label{font-size:11px;letter-spacing:4px;color:var(--muted);font-weight:700;margin-bottom:8px}
+.lr-number{font-family:'Bebas Neue',Impact,sans-serif;font-size:14px;letter-spacing:3px;margin-bottom:4px}
+.lr-name{font-family:'Bebas Neue',Impact,sans-serif;font-size:clamp(44px,10vw,64px);line-height:1;letter-spacing:2px;color:var(--white);margin-bottom:8px}
+.lr-tagline{font-size:13px;color:var(--muted);margin-bottom:24px}
+.enter-btn{background:var(--amber);color:var(--bg);border:none;border-radius:6px;padding:16px 48px;font-family:'Bebas Neue',Impact,sans-serif;font-size:18px;letter-spacing:3px;cursor:pointer;transition:transform .1s;opacity:0;animation:interFade .5s ease forwards 1.3s}
+.enter-btn:active{transform:scale(.96)}
+@keyframes interFade{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.inter-skip{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:none;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:6px;font-size:12px;cursor:pointer;z-index:10}
+
+@media(max-width:480px){.sub-btns{gap:8px}.mode-card{padding:14px 10px}}
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="home-screen" class="screen active">
+  <div style="flex:1"></div>
+  <div class="eyebrow">SOCIAL INTELLIGENCE GAME</div>
+  <div class="logo">DECEIVED</div>
+  <div class="divider"></div>
+  <p class="hero-sub">Lies. Body language. AI impostors. Buried truth.<br>
+  5 levels. 57 scenarios. A new daily challenge every day.<br><br>
+  <strong>Can you spot the lie?</strong></p>
+  <div class="pulse-row">
+    <div class="pulse-wrap" id="homePulse"></div>
+    <button class="sound-btn" id="soundBtn" onclick="toggleSound()">🔊</button>
+  </div>
+  <div class="pulse-label" id="soundLabel">LIE DETECTOR CALIBRATING · SOUND ON</div>
+  <div class="home-btns">
+    <button class="big-btn" style="background:var(--amber);color:var(--bg)" onclick="showLevelSelect()">🎯 LEVELS & CAMPAIGN</button>
+    <div class="sub-btns">
+      <button class="mode-card" style="background:var(--red);color:#fff" onclick="startQuick('timed')">
+        <div class="mode-icon">⏱</div><div class="mode-name">QUICK TIMED</div><div class="mode-desc">5 random · 30s each</div>
+      </button>
+      <button class="mode-card" style="background:var(--purple);color:#fff" onclick="document.getElementById('multisetup-screen').classList.add('active');document.getElementById('home-screen').classList.remove('active')">
+        <div class="mode-icon">👥</div><div class="mode-name">LOCAL VS</div><div class="mode-desc">Pass & play</div>
+      </button>
+    </div>
+    <button class="lb-btn" onclick="showLeaderboard()">🏆 LEADERBOARD</button>
+  </div>
+  <div style="flex:1.5"></div>
+</div>
+
+<!-- LEVEL SELECT -->
+<div id="levelselect-screen" class="screen">
+  <div class="ls-header">
+    <button class="ls-back" onclick="goHome()">← BACK</button>
+    <div class="ls-title">CAMPAIGN</div>
+    <div style="width:70px"></div>
+  </div>
+  <div class="daily-card" onclick="startDaily()">
+    <div class="daily-top">
+      <div class="daily-label">⚡ DAILY CHALLENGE</div>
+      <div class="daily-timer" id="dailyTimer">--:--:--</div>
+    </div>
+    <div class="daily-name" id="dailyName">Today's Challenge</div>
+    <div class="daily-desc" id="dailyDesc">5 fresh scenarios · New every day at midnight</div>
+  </div>
+  <div class="levels-list" id="levelsList"></div>
+</div>
+
+<!-- MULTI SETUP -->
+<div id="multisetup-screen" class="screen" style="justify-content:center;text-align:center">
+  <div style="max-width:480px;width:100%">
+    <button class="btn btn-outline btn-sm" style="display:block;margin-bottom:24px" onclick="goHome()">← BACK</button>
+    <div style="font-size:11px;letter-spacing:6px;color:var(--purple);font-weight:700;margin-bottom:14px">LOCAL VS MODE</div>
+    <h2 style="font-family:'Bebas Neue',Impact,sans-serif;font-size:40px;color:var(--white);margin:0 0 8px;letter-spacing:2px">WHO'S PLAYING?</h2>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:28px">5 scenarios, alternate turns. Best liar-spotter wins.</p>
+    <div style="margin-bottom:14px;text-align:left">
+      <div style="font-size:11px;letter-spacing:2px;color:var(--amber);font-weight:700;margin-bottom:6px">PLAYER 1</div>
+      <input id="p1name" value="Player 1" style="width:100%;background:var(--panel);border:1.5px solid rgba(232,160,48,.4);border-radius:8px;color:var(--white);font-size:16px;padding:12px 16px;outline:none;font-family:'Inter',sans-serif;box-sizing:border-box"/>
+    </div>
+    <div style="margin-bottom:24px;text-align:left">
+      <div style="font-size:11px;letter-spacing:2px;color:var(--teal);font-weight:700;margin-bottom:6px">PLAYER 2</div>
+      <input id="p2name" value="Player 2" style="width:100%;background:var(--panel);border:1.5px solid rgba(0,212,170,.4);border-radius:8px;color:var(--white);font-size:16px;padding:12px 16px;outline:none;font-family:'Inter',sans-serif;box-sizing:border-box"/>
+    </div>
+    <button class="btn" style="width:100%;background:var(--purple);color:#fff;font-size:16px;padding:16px" onclick="startMulti()">START VS MATCH</button>
+  </div>
+</div>
+
+<!-- PASS -->
+<div id="pass-screen" class="screen" style="justify-content:center;text-align:center">
+  <div style="max-width:440px;width:100%">
+    <div id="passIcon" style="width:80px;height:80px;border-radius:50%;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;font-size:36px">👤</div>
+    <div id="passLabel" style="font-family:'Bebas Neue',Impact,sans-serif;font-size:14px;letter-spacing:4px;margin-bottom:8px">PLAYER 1</div>
+    <div id="passName" style="font-family:'Bebas Neue',Impact,sans-serif;font-size:40px;color:var(--white);letter-spacing:2px;margin-bottom:16px">Player 1</div>
+    <p style="color:var(--muted);font-size:15px;line-height:1.7;margin-bottom:40px">Your turn. Same scenario — fresh eyes.<br><strong style="color:var(--white)">Don't let them see your answer.</strong></p>
+    <button class="btn btn-amber" style="font-size:18px;padding:16px 48px" onclick="readyPass()">I'M READY →</button>
+  </div>
+</div>
+
+<!-- INTERSTITIAL -->
+<div id="interstitial-screen" class="screen">
+  <div class="inter-inner">
+    <div class="classified-stamp">CLASSIFIED</div>
+    <div class="case-header" id="interCaseHeader">CASE FILE #001 · CLEARANCE GRANTED · DECRYPTING<span class="blink">_</span></div>
+    <div class="polygraph">
+      <div class="poly-label"><span>◉ POLYGRAPH · LIVE</span><span>DECEPTION DETECTED</span></div>
+      <svg class="poly-svg" id="polySvg" viewBox="0 0 520 80" preserveAspectRatio="none">
+        <line x1="0" y1="40" x2="520" y2="40" stroke="#1E2235" stroke-width="1"/>
+        <path class="poly-line" id="polyPath1" stroke="#00D4AA" d=""/>
+        <path class="poly-line" id="polyPath2" stroke="#E8A030" d="" opacity="0.6"/>
+      </svg>
+    </div>
+    <div class="quote-block">
+      <div class="quote-text" id="interQuote"></div>
+      <div class="quote-attr">— DECEIVED · FIELD NOTES</div>
+    </div>
+    <div class="level-reveal">
+      <div class="lr-label">NOW ENTERING</div>
+      <div class="lr-number" id="interLrNumber">LEVEL 1</div>
+      <div class="lr-name" id="interLrName"></div>
+      <div class="lr-tagline" id="interLrTagline"></div>
+      <button class="enter-btn" id="interEnterBtn">ENTER →</button>
+    </div>
+  </div>
+  <button class="inter-skip" id="interSkip">Skip →</button>
+</div>
+
+<!-- GAME -->
+<div id="game-screen" class="screen">
+  <div class="game-inner">
+    <div class="game-header">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="game-logo">DECEIVED</div>
+        <span class="game-level-badge hidden" id="gameLevelBadge"></span>
+      </div>
+      <div class="game-header-right">
+        <div class="streak-badge hidden" id="streakBadge"></div>
+        <div class="timer-display hidden" id="timerDisplay"></div>
+        <div class="tension-label" id="tensionLabel">◉ MONITORING</div>
+        <button class="sound-btn" id="gameSoundBtn" onclick="toggleSound()">🔊</button>
+        <div class="round-label" id="roundLabel">1/10</div>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="tension-bar"><div class="tension-fill" id="tensionFill" style="width:0%;background:linear-gradient(90deg,var(--teal),var(--amber),var(--red))"></div></div>
+    <div class="time-bar hidden" id="timeBar"><div class="time-fill" id="timeFill" style="width:100%;background:var(--teal)"></div></div>
+    <div class="bonus-flash" id="bonusFlash"></div>
+    <div class="scenario-card">
+      <div class="scenario-header">
+        <span class="type-badge" id="typeBadge"></span>
+        <span class="scenario-title" id="scenarioTitle"></span>
+      </div>
+      <p class="scenario-setup" id="scenarioSetup"></p>
+    </div>
+    <div class="statements" id="statements"></div>
+    <button class="clue-btn" id="clueBtn" onclick="toggleClue()">🔍 Reveal psychological clue (free)</button>
+    <div class="clue-box hidden" id="clueBox"><div class="clue-label">BEHAVIORAL INSIGHT</div><div class="clue-text" id="clueText"></div></div>
+    <div class="conf-box" id="confBox">
+      <div class="conf-label">CONFIDENCE LEVEL</div>
+      <div class="pulse-wrap" id="confPulse"></div>
+      <input type="range" min="0" max="4" value="2" class="conf-slider" id="confSlider" oninput="updateConf(this.value)"/>
+      <div class="conf-value" id="confValue">Pretty sure</div>
+    </div>
+    <button class="lock-btn" id="lockBtn" disabled onclick="lockIn()">LOCK IN MY READ</button>
+    <div class="reveal-box hidden" id="revealBox"><div class="reveal-title" id="revealTitle"></div><p class="reveal-text" id="revealText"></p></div>
+    <button class="next-btn hidden" id="nextBtn" onclick="nextRound()">NEXT →</button>
+  </div>
+</div>
+
+<!-- LEVEL COMPLETE -->
+<div id="levelcomplete-screen" class="screen">
+  <div class="lc-stars" id="lcStars">★★★</div>
+  <div class="lc-title" id="lcTitle">LEVEL CLEARED</div>
+  <div class="lc-level-name" id="lcLevelName"></div>
+  <div class="lc-score-circle" id="lcCircle">
+    <div class="lc-score-num" id="lcScoreNum">0</div>
+    <div class="lc-score-label">DIQ SCORE</div>
+  </div>
+  <div class="lc-stat-row">
+    <div class="lc-stat"><div class="lc-stat-num" id="lcCorrect" style="color:var(--teal)">0</div><div class="lc-stat-label">CORRECT</div></div>
+    <div class="lc-stat"><div class="lc-stat-num" id="lcAccuracy" style="color:var(--amber)">0%</div><div class="lc-stat-label">ACCURACY</div></div>
+  </div>
+  <div id="lcUnlock" class="hidden" style="background:rgba(0,212,170,.12);border:1px solid var(--teal);border-radius:8px;padding:14px 20px;margin-bottom:24px;max-width:400px">
+    <div style="font-size:11px;letter-spacing:2px;color:var(--teal);font-weight:700;margin-bottom:4px">🔓 UNLOCKED</div>
+    <div style="color:var(--white);font-size:14px" id="lcUnlockText"></div>
+  </div>
+  <div class="action-row">
+    <button class="btn btn-teal" id="lcNextBtn" onclick="nextLevel()">NEXT LEVEL →</button>
+    <button class="btn" style="background:none;border:1px solid var(--teal);color:var(--teal)" onclick="showShareCard()">📲 SHARE</button>
+    <button class="btn btn-amber" onclick="showLevelSelect()">↺ LEVELS</button>
+  </div>
+</div>
+
+<!-- VS RESULTS -->
+<div id="vsresults-screen" class="screen" style="justify-content:center;text-align:center">
+  <div style="max-width:560px;width:100%">
+    <div style="font-size:11px;letter-spacing:6px;color:var(--muted);font-weight:700;margin-bottom:20px">FINAL VERDICT</div>
+    <div id="vsWinner" style="border-radius:12px;padding:28px 24px;margin-bottom:28px;border-width:2px;border-style:solid"></div>
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-bottom:24px">
+      <div id="vsP1Card" style="background:var(--card);border:2px solid var(--border);border-radius:10px;padding:20px 12px"></div>
+      <div style="font-family:'Bebas Neue',Impact,sans-serif;font-size:28px;color:var(--muted)">VS</div>
+      <div id="vsP2Card" style="background:var(--card);border:2px solid var(--border);border-radius:10px;padding:20px 12px"></div>
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center">
+      <button class="btn btn-amber" onclick="startMulti()">REMATCH</button>
+      <button class="btn btn-outline" onclick="goHome()">↺ HOME</button>
+    </div>
+  </div>
+</div>
+
+<!-- LEADERBOARD -->
+<div id="leaderboard-screen" class="screen">
+  <div class="lb-header">
+    <button class="btn btn-outline btn-sm" onclick="goHome()">← BACK</button>
+    <div class="lb-title">LEADERBOARD</div>
+    <div style="width:80px"></div>
+  </div>
+  <div class="lb-eyebrow">TOP DECEPTION HUNTERS · ALL TIME</div>
+  <div id="lbList" style="width:100%;display:flex;flex-direction:column;align-items:center"></div>
+  <div style="margin-top:24px;text-align:center;width:100%">
+    <button class="btn btn-amber" onclick="goHome()">PLAY</button>
+  </div>
+</div>
+
+<!-- NAME MODAL -->
+<div class="modal-overlay hidden" id="nameModal">
+  <div class="modal-box">
+    <div class="modal-circle" id="modalCircle"><div class="modal-iq" id="modalIQ"></div><div style="font-size:9px;letter-spacing:1px;color:var(--muted);font-weight:700">DIQ</div></div>
+    <div class="modal-archetype" id="modalArchetype"></div>
+    <div class="modal-sub" id="modalSub"></div>
+    <input class="modal-input" id="nameInput" placeholder="Your name or alias..." maxlength="20" onkeydown="if(event.key==='Enter')submitName()"/>
+    <div class="modal-btns">
+      <button class="btn btn-amber" style="flex:1" onclick="submitName()">POST SCORE</button>
+      <button class="btn btn-outline" onclick="skipName()">Skip</button>
+    </div>
+    <div style="margin-top:12px;font-size:11px;color:var(--muted)">Scores saved locally on this device</div>
+  </div>
+</div>
+
+<!-- SHARE MODAL -->
+<div class="modal-overlay hidden" id="shareModal">
+  <div style="max-width:380px;width:100%;text-align:center">
+    <div style="font-size:11px;letter-spacing:3px;color:var(--teal);font-weight:700;margin-bottom:14px">YOUR SHARE CARD</div>
+    <div style="border-radius:10px;overflow:hidden;margin-bottom:16px;border:1px solid var(--border)"><canvas id="shareCanvas" style="width:100%;display:block"></canvas></div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-amber" onclick="downloadCard()">⬇ DOWNLOAD</button>
+      <button class="btn btn-outline" onclick="document.getElementById('shareModal').classList.add('hidden')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="scenarios.js"></script>
+<script>
+// ══ DECEIVED — Level-Based Engine ══
+const C={bg:'#0A0C12',panel:'#11141E',border:'#1E2235',amber:'#E8A030',teal:'#00D4AA',red:'#E83050',white:'#F0F2F8',muted:'#6B7280',card:'#161A28',purple:'#7C3AED',gold:'#FFD700'};
+const P_COLORS=['#E8A030','#00D4AA'];
+const CONF_LABELS=['Just guessing','Leaning this way','Pretty sure','Certain','Stake my life on it'];
+const TYPE_MAP={WHO_IS_LYING:{label:'👁 DECEPTION',color:C.red},AI_OR_HUMAN:{label:'🤖 AI vs HUMAN',color:C.teal},BODY_LANGUAGE:{label:'🧠 BEHAVIOR',color:C.amber},CONSPIRACY_OR_FACT:{label:'🔍 TRUTH CHECK',color:C.purple}};
+const ARCH_ICONS={'The Interrogator':'🔦','The Detective':'🔍','The Analyst':'📊','The Empath':'🫀'};
+const PROGRESS_KEY='deceived-progress-v1';
+const LB_KEY='deceived-leaderboard-v1';
+
+let state={mode:'level',soundOn:true,levelId:1,scenarios:[],round:0,selected:null,confidence:2,submitted:false,results:[],showClue:false,tension:0,timeLeft:30,timeExpired:false,streak:0,bonusPoints:0,currentPlayer:0,playerNames:['Player 1','Player 2'],p1Results:[],p2Results:[],profile:null,lastEntry:null,timed:false,levelMeta:null};
+let tensionInterval=null,clockInterval=null,dailyInterval=null;
+let audioCtx=null,masterGain=null,tensionGain=null,ambientOscs=[];
+
+// ── Progress ──
+function loadProgress(){try{return JSON.parse(localStorage.getItem(PROGRESS_KEY)||'{"levels":{},"unlocked":1}');}catch{return{levels:{},unlocked:1};}}
+function saveProgress(p){try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(p));}catch{}}
+function loadLB(){try{return JSON.parse(localStorage.getItem(LB_KEY)||'[]');}catch{return[];}}
+function saveLB(e){const b=[...loadLB(),e].sort((a,b)=>b.diq-a.diq).slice(0,50);try{localStorage.setItem(LB_KEY,JSON.stringify(b));}catch{}return b;}
+
+// ── Screens ──
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));const s=document.getElementById(id);if(s){s.classList.add('active');window.scrollTo(0,0);}}
+function goHome(){stopAmbient();clearInterval(tensionInterval);clearInterval(clockInterval);showScreen('home-screen');}
+
+// ── Sound ──
+function getCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx;}
+function startAmbient(){if(ambientOscs.length)return;const ctx=getCtx();masterGain=ctx.createGain();masterGain.gain.value=state.soundOn?1:0;masterGain.connect(ctx.destination);tensionGain=ctx.createGain();tensionGain.gain.value=0.03;tensionGain.connect(masterGain);[38,42,55,57].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type=i<2?'sine':'triangle';o.frequency.value=f;g.gain.value=i<2?0.6:0.25;o.connect(g);g.connect(tensionGain);o.start();ambientOscs.push(o);});}
+function stopAmbient(){ambientOscs.forEach(o=>{try{o.stop();}catch{}});ambientOscs=[];if(masterGain)try{masterGain.disconnect();}catch{}masterGain=null;tensionGain=null;}
+function setTension(l){if(!tensionGain||!audioCtx)return;tensionGain.gain.setTargetAtTime(0.03+0.25*l,audioCtx.currentTime,1.5);}
+function beep(f,v,d,t='sine'){if(!state.soundOn)return;const ctx=getCtx(),o=ctx.createOscillator(),g=ctx.createGain();o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+d);o.connect(g);g.connect(masterGain||ctx.destination);o.start();o.stop(ctx.currentTime+d);}
+function playTick(){beep(1200,0.08,0.06);}
+function playLockIn(){if(!state.soundOn)return;const ctx=getCtx(),buf=ctx.createBuffer(1,ctx.sampleRate*0.3,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(ctx.sampleRate*0.05));const s=ctx.createBufferSource(),g=ctx.createGain();s.buffer=buf;g.gain.value=0.5;s.connect(g);g.connect(masterGain||ctx.destination);s.start();if(tensionGain)tensionGain.gain.setTargetAtTime(0.01,ctx.currentTime+0.05,0.2);}
+function playReveal(ok){if(!state.soundOn)return;const ctx=getCtx(),dest=masterGain||ctx.destination;(ok?[523,659,784]:[220,196,165]).forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime+i*(ok?0.12:0.15);o.type=ok?'sine':'sawtooth';o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(ok?0.18:0.2,t+0.05);g.gain.exponentialRampToValueAtTime(0.001,t+0.55);o.connect(g);g.connect(dest);o.start(t);o.stop(t+0.6);});}
+function playProfileReveal(){if(!state.soundOn)return;const ctx=getCtx(),dest=masterGain||ctx.destination,o=ctx.createOscillator(),g=ctx.createGain(),f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=400;f.Q.value=2;o.type='sawtooth';o.frequency.setValueAtTime(80,ctx.currentTime);o.frequency.linearRampToValueAtTime(320,ctx.currentTime+1.8);g.gain.setValueAtTime(0,ctx.currentTime);g.gain.linearRampToValueAtTime(0.3,ctx.currentTime+0.3);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+2.2);o.connect(f);f.connect(g);g.connect(dest);o.start();o.stop(ctx.currentTime+2.2);}
+function playLevelUp(){if(!state.soundOn)return;const ctx=getCtx(),dest=masterGain||ctx.destination;[392,523,659,784,1047].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime+i*0.09;o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.15,t+0.03);g.gain.exponentialRampToValueAtTime(0.001,t+0.35);o.connect(g);g.connect(dest);o.start(t);o.stop(t+0.35);});}
+function playTimeUp(){if(!state.soundOn)return;const ctx=getCtx(),dest=masterGain||ctx.destination;[880,660,440,220].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime+i*0.1;o.type='sawtooth';o.frequency.value=f;g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);o.connect(g);g.connect(dest);o.start(t);o.stop(t+0.25);});}
+
+// ── Pulse ──
+function buildPulse(id,n){const w=document.getElementById(id);if(!w)return;const cols=[C.teal,C.teal,C.teal,C.teal,C.teal,C.teal,C.teal,C.amber,C.amber,C.amber,C.amber,C.amber,C.amber,C.red,C.red,C.red,C.red,C.red,C.red,C.red];w.innerHTML='';for(let i=0;i<n;i++){const b=document.createElement('div');b.className='pulse-bar';b.style.height=(8+Math.sin(i*0.8)*8+Math.random()*4)+'px';b.style.background=cols[i%cols.length];b.style.opacity='0.8';w.appendChild(b);}}
+function updateConfPulse(v){document.querySelectorAll('#confPulse .pulse-bar').forEach((b,i)=>{const lit=(i/20)*4<=v,col=i<7?C.teal:i<14?C.amber:C.red;b.style.height=lit?(16+Math.sin(i*0.8)*8)+'px':'6px';b.style.background=lit?col:C.border;b.style.opacity=lit?'1':'0.3';});}
+
+function toggleSound(){state.soundOn=!state.soundOn;const ic=state.soundOn?'🔊':'🔇';document.getElementById('soundBtn').textContent=ic;document.getElementById('gameSoundBtn').textContent=ic;document.getElementById('soundLabel').textContent='LIE DETECTOR CALIBRATING · SOUND '+(state.soundOn?'ON':'OFF');if(masterGain&&audioCtx)masterGain.gain.setTargetAtTime(state.soundOn?1:0,audioCtx.currentTime,0.3);}
+
+// ── Profile ──
+function buildProfile(results){const correct=results.filter(r=>r.correct).length;const oc=results.filter(r=>!r.correct&&r.confidence>=3).length;const uc=results.filter(r=>r.correct&&r.confidence<=1).length;const iq=Math.min(100,Math.max(20,Math.round((correct/results.length)*100-oc*8+uc*3)+40));let archetype,description,blindspot;if(iq>=85){archetype='The Interrogator';description='You read people like open books. You catch micro-signals others miss entirely.';blindspot='You trust your gut so much you sometimes ignore contradicting evidence.';}else if(iq>=70){archetype='The Detective';description='Methodical and sharp. You look for inconsistencies before making a call.';blindspot='Emotional manipulation occasionally slips past your logic-first radar.';}else if(iq>=55){archetype='The Analyst';description='You notice patterns but hesitate to commit. Your instincts are good — trust them more.';blindspot='Overthinking under pressure leads you to second-guess correct first reads.';}else{archetype='The Empath';description='You want to believe people — which makes you unusually good at detecting real distress.';blindspot='Skilled liars who appeal to emotion consistently get past your defenses.';}return{iq,archetype,description,blindspot,correct,total:results.length};}
+function iqColor(iq){return iq>=80?C.teal:iq>=60?C.amber:C.red;}
+function calcStars(correct,total){const pct=correct/total;return pct>=0.9?3:pct>=0.7?2:pct>=0.5?1:0;}
+
+// ── Interstitials (Twilight Zone voice) ──
+const INTERSTITIALS = {
+  1: { quote: "You believe you can tell when you are being lied to. That belief is the first lie. We will be testing it.", color:"#00D4AA" },
+  2: { quote: "Somewhere in this building, a person is smiling at you and meaning none of it. You have met them already. You did not notice.", color:"#E8A030" },
+  3: { quote: "The truth leaves fingerprints. So does a careful lie. The difference is that one of them wants to be found.", color:"#7C3AED" },
+  4: { quote: "They studied the way you decide who to trust. They practiced in mirrors. When they reach you, you will feel certain — and that is how you will know.", color:"#E8A030" },
+  5: { quote: "The finest liars do not break a sweat, because they are no longer lying. They have come to believe it. So, by the end of this, will you.", color:"#E83050" },
+};
+
+function generatePolyPath(seed, amplitude, spikeAt){
+  let d='M 0 40';
+  for(let x=0;x<=520;x+=4){
+    let y=40+Math.sin(x*0.08+seed)*(amplitude*0.4)+Math.sin(x*0.23+seed)*(amplitude*0.25);
+    const dist=Math.abs(x-spikeAt);
+    if(dist<30)y+=Math.sin((30-dist)*0.2)*amplitude*1.4*(x<spikeAt?1:-1);
+    d+=` L ${x} ${y.toFixed(1)}`;
+  }
+  return d;
+}
+function animatePoly(){
+  const p1=document.getElementById('polyPath1'),p2=document.getElementById('polyPath2');
+  p1.setAttribute('d',generatePolyPath(1,14,360));
+  p2.setAttribute('d',generatePolyPath(3,9,360));
+  [p1,p2].forEach((p,i)=>{const len=p.getTotalLength();p.style.strokeDasharray=len;p.style.strokeDashoffset=len;p.style.transition='none';requestAnimationFrame(()=>{p.style.transition=`stroke-dashoffset 2s ease-out ${0.3+i*0.2}s`;p.style.strokeDashoffset='0';});});
+}
+function showInterstitial(levelId, onEnter){
+  const lv=LEVELS.find(l=>l.id===levelId);if(!lv){onEnter();return;}
+  const data=INTERSTITIALS[levelId]||INTERSTITIALS[1];
+  document.getElementById('interCaseHeader').innerHTML=`CASE FILE #${String(levelId).padStart(3,'0')} · CLEARANCE GRANTED · DECRYPTING<span class="blink">_</span>`;
+  document.getElementById('interQuote').textContent='"'+data.quote+'"';
+  document.getElementById('interLrNumber').textContent='LEVEL '+levelId;
+  document.getElementById('interLrNumber').style.color=lv.color;
+  document.getElementById('interLrName').textContent=lv.name.toUpperCase();
+  document.getElementById('interLrTagline').textContent=lv.tagline;
+  document.querySelector('.classified-stamp').style.borderColor=data.color;
+  document.querySelector('.classified-stamp').style.color=data.color;
+  // Re-trigger animations
+  document.querySelectorAll('#interstitial-screen .classified-stamp,#interstitial-screen .case-header,#interstitial-screen .polygraph,#interstitial-screen .quote-block,#interstitial-screen .level-reveal,#interstitial-screen .enter-btn').forEach(n=>{n.style.animation='none';n.offsetHeight;n.style.animation='';});
+  const go=()=>{onEnter();};
+  document.getElementById('interEnterBtn').onclick=go;
+  document.getElementById('interSkip').onclick=go;
+  showScreen('interstitial-screen');
+  setTimeout(animatePoly,50);
+  // soft tension hum during interstitial
+  startAmbient();
+}
+
+// ── Daily challenge ──
+function getDailySeed(){const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();}
+function seededRandom(seed){let s=seed%2147483647;if(s<=0)s+=2147483646;return()=>{s=s*16807%2147483647;return(s-1)/2147483646;};}
+function getDailyScenarios(){const all=[];LEVELS.forEach(l=>l.scenarios.forEach(s=>all.push(s)));const rand=seededRandom(getDailySeed());const shuffled=[...all].sort(()=>rand()-0.5);return shuffled.slice(0,5);}
+function updateDailyTimer(){const now=new Date();const tomorrow=new Date(now);tomorrow.setHours(24,0,0,0);const diff=tomorrow-now;const h=Math.floor(diff/3600000),m=Math.floor(diff%3600000/60000),s=Math.floor(diff%60000/1000);document.getElementById('dailyTimer').textContent=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}
+
+// ── Level select ──
+function showLevelSelect(){
+  const progress=loadProgress();
+  const list=document.getElementById('levelsList');list.innerHTML='';
+  LEVELS.forEach(lv=>{
+    const lvProg=progress.levels[lv.id];
+    const locked=lv.id>progress.unlocked;
+    const stars=lvProg?lvProg.stars:0;
+    const card=document.createElement('div');
+    card.className='level-card'+(locked?' locked':'');
+    const starStr=locked?'':'★★★'.split('').map((s,i)=>i<stars?`<span style="color:${C.gold}">★</span>`:`<span style="color:${C.border}">★</span>`).join('');
+    card.innerHTML=`
+      <div class="level-num" style="color:${locked?C.muted:lv.color}">${lv.id}</div>
+      <div class="level-info">
+        <div class="level-name">${lv.name}</div>
+        <div class="level-tagline">${lv.tagline}</div>
+        <div class="level-meta">
+          <span style="color:${lv.color}">${lv.difficulty}</span>
+          ${locked?'':`<span class="level-stars">${starStr}</span>`}
+          ${lvProg?`<span>· Best ${lvProg.diq} DIQ</span>`:''}
+        </div>
+      </div>
+      <div class="level-right">
+        ${locked?'<div class="level-lock-icon">🔒</div>':`<div class="level-count">${lv.scenarios.length}</div><div style="font-size:9px;color:${C.muted};letter-spacing:1px">ROUNDS</div>`}
+      </div>`;
+    if(!locked)card.onclick=()=>startLevel(lv.id);
+    list.appendChild(card);
+  });
+  updateDailyTimer();
+  if(dailyInterval)clearInterval(dailyInterval);
+  dailyInterval=setInterval(updateDailyTimer,1000);
+  showScreen('levelselect-screen');
+}
+
+// ── Start modes ──
+function startLevel(id){
+  const lv=LEVELS.find(l=>l.id===id);if(!lv)return;
+  showInterstitial(id, ()=>beginLevel(id));
+}
+function beginLevel(id){
+  const lv=LEVELS.find(l=>l.id===id);if(!lv)return;
+  state.mode='level';state.levelId=id;state.levelMeta=lv;state.timed=false;
+  state.scenarios=[...lv.scenarios];
+  state.round=0;state.results=[];state.streak=0;state.bonusPoints=0;
+  startAmbient();loadRound();showScreen('game-screen');
+}
+function startDaily(){
+  state.mode='daily';state.timed=false;state.levelMeta={name:'Daily Challenge',color:C.purple,difficulty:'Daily'};
+  state.scenarios=getDailyScenarios();
+  state.round=0;state.results=[];state.streak=0;state.bonusPoints=0;
+  startAmbient();loadRound();showScreen('game-screen');
+}
+function startQuick(mode){
+  state.mode='quick';state.timed=(mode==='timed');state.levelMeta=null;
+  const all=[];LEVELS.forEach(l=>l.scenarios.forEach(s=>all.push(s)));
+  state.scenarios=[...all].sort(()=>Math.random()-0.5).slice(0,5);
+  state.round=0;state.results=[];state.streak=0;state.bonusPoints=0;
+  startAmbient();loadRound();showScreen('game-screen');
+}
+function startMulti(){
+  state.playerNames=[document.getElementById('p1name').value||'Player 1',document.getElementById('p2name').value||'Player 2'];
+  state.mode='multi';state.timed=false;state.levelMeta=null;
+  const all=[];LEVELS.forEach(l=>l.scenarios.forEach(s=>all.push(s)));
+  state.scenarios=[...all].sort(()=>Math.random()-0.5).slice(0,5);
+  state.round=0;state.results=[];state.p1Results=[];state.p2Results=[];state.currentPlayer=0;state.streak=0;
+  startAmbient();showPassScreen();
+}
+function showPassScreen(){const p=state.currentPlayer,color=P_COLORS[p];const ic=document.getElementById('passIcon');ic.style.background=color+'22';ic.style.border=`4px solid ${color}`;ic.textContent=p===0?'👤':'👥';document.getElementById('passLabel').style.color=color;document.getElementById('passLabel').textContent=`PLAYER ${p+1}`;document.getElementById('passName').textContent=state.playerNames[p];showScreen('pass-screen');}
+function readyPass(){loadRound();showScreen('game-screen');}
+
+// ── Round ──
+function loadRound(){
+  clearInterval(tensionInterval);clearInterval(clockInterval);
+  const sc=state.scenarios[state.round];if(!sc)return;
+  state.selected=null;state.submitted=false;state.showClue=false;state.tension=0;state.timeLeft=30;state.timeExpired=false;
+  // Level badge
+  const badge=document.getElementById('gameLevelBadge');
+  if(state.levelMeta){badge.classList.remove('hidden');badge.textContent=state.levelMeta.name.toUpperCase();badge.style.color=state.levelMeta.color;badge.style.borderColor=state.levelMeta.color;}
+  else badge.classList.add('hidden');
+  document.getElementById('roundLabel').textContent=`${state.round+1}/${state.scenarios.length}`;
+  document.getElementById('progressFill').style.width=`${(state.round/state.scenarios.length)*100}%`;
+  document.getElementById('streakBadge').classList.toggle('hidden',state.streak<2);
+  if(state.streak>=2)document.getElementById('streakBadge').textContent=`🔥 x${state.streak}`;
+  document.getElementById('timerDisplay').classList.toggle('hidden',!state.timed);
+  document.getElementById('timeBar').classList.toggle('hidden',!state.timed);
+  const tb=TYPE_MAP[sc.type]||{label:'❓',color:C.muted};
+  const badgeEl=document.getElementById('typeBadge');badgeEl.textContent=tb.label;badgeEl.style.color=tb.color;badgeEl.style.borderColor=tb.color;
+  document.getElementById('scenarioTitle').textContent=sc.title;
+  document.getElementById('scenarioSetup').textContent=sc.setup;
+  const stmts=document.getElementById('statements');stmts.innerHTML='';
+  if(sc.verdicts&&sc.observations){
+    // Body-language: show observations as read-only context, verdicts as buttons
+    const obsWrap=document.createElement('div');
+    obsWrap.style.cssText='background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:14px';
+    obsWrap.innerHTML='<div style="font-size:10px;letter-spacing:2px;color:var(--amber);font-weight:700;margin-bottom:10px">🔬 OBSERVED BEHAVIOR</div>'+
+      sc.observations.map((o,i)=>`<div style="display:flex;gap:10px;margin-bottom:${i<sc.observations.length-1?'10px':'0'}"><span style="color:var(--amber);font-weight:700;font-size:13px;flex-shrink:0">${i+1}.</span><span style="color:var(--white);font-size:13px;line-height:1.55">${o}</span></div>`).join('');
+    stmts.appendChild(obsWrap);
+    const q=document.createElement('div');
+    q.style.cssText='font-size:11px;letter-spacing:2px;color:var(--muted);font-weight:700;margin-bottom:10px;text-align:center';
+    q.textContent='WHAT\'S YOUR READ?';
+    stmts.appendChild(q);
+    sc.verdicts.forEach(v=>{const btn=document.createElement('button');btn.className='statement-btn';btn.dataset.name=v;btn.style.textAlign='center';btn.innerHTML=`<div class="stmt-text" style="color:var(--white);font-weight:600">${v}</div>`;btn.addEventListener('click',()=>selectStatement(v));stmts.appendChild(btn);});
+  }else{
+    sc.statements.forEach(s=>{const btn=document.createElement('button');btn.className='statement-btn';btn.dataset.name=s.name;btn.innerHTML=`<div class="stmt-name">${s.name.toUpperCase()}</div><div class="stmt-text">"${s.text}"</div>`;btn.addEventListener('click',()=>selectStatement(s.name));stmts.appendChild(btn);});
+  }
+  document.getElementById('clueBtn').textContent='🔍 Reveal psychological clue (free)';
+  document.getElementById('clueBox').classList.add('hidden');
+  document.getElementById('clueText').textContent=sc.clue;
+  document.getElementById('confSlider').value=2;state.confidence=2;
+  document.getElementById('confValue').textContent=CONF_LABELS[2];updateConfPulse(2);
+  document.getElementById('confBox').style.borderColor=C.border;document.getElementById('confBox').classList.remove('hidden');
+  document.getElementById('lockBtn').disabled=true;document.getElementById('lockBtn').classList.remove('hidden');document.getElementById('lockBtn').textContent='LOCK IN MY READ';
+  const rb=document.getElementById('revealBox');rb.classList.add('hidden');rb.classList.remove('show');
+  document.getElementById('nextBtn').classList.add('hidden');document.getElementById('bonusFlash').style.display='none';
+  state.tension=0;updateTension(0);
+  tensionInterval=setInterval(()=>{state.tension=Math.min(1,state.tension+0.012);updateTension(state.tension);setTension(state.tension);},700);
+  if(state.timed){updateTimerDisplay(30);clockInterval=setInterval(()=>{state.timeLeft--;updateTimerDisplay(state.timeLeft);if(state.timeLeft<=10&&state.timeLeft>0)beep(440+(1-state.timeLeft/10)*400,0.05,0.08,'square');const tp=1-state.timeLeft/30;state.tension=Math.max(state.tension,tp);updateTension(state.tension);setTension(state.tension);if(state.timeLeft<=0){clearInterval(clockInterval);state.timeExpired=true;playTimeUp();timeOut();}},1000);}
+}
+function updateTimerDisplay(s){const el=document.getElementById('timerDisplay');el.textContent=s+'s';el.style.color=s<=5?C.red:s<=10?C.amber:C.white;el.style.textShadow=s<=5?`0 0 12px ${C.red}`:'none';const f=document.getElementById('timeFill');f.style.width=`${(s/30)*100}%`;f.style.background=s<=5?C.red:s<=10?C.amber:C.teal;}
+function updateTension(l){const col=l<0.4?C.teal:l<0.7?C.amber:C.red;const lbl=l<0.3?'◉ MONITORING':l<0.6?'◉ ELEVATED':l<0.85?'◉ HIGH STRESS':'◉ CRITICAL';const e=document.getElementById('tensionLabel');e.textContent=lbl;e.style.color=col;document.getElementById('tensionFill').style.width=`${l*100}%`;document.getElementById('tensionFill').style.boxShadow=l>0.7?`0 0 8px ${C.red}`:'none';if(l>0.7)document.getElementById('confBox').style.borderColor=C.red+'60';}
+function selectStatement(name){if(state.submitted)return;state.selected=name;state.tension=Math.min(1,state.tension+0.07);updateTension(state.tension);setTension(state.tension);playTick();const sc=state.scenarios[state.round];const isVerdict=sc.verdicts&&sc.observations;document.querySelectorAll('.statement-btn').forEach(b=>{b.classList.toggle('selected',b.dataset.name===name);if(!isVerdict){const n=b.querySelector('.stmt-name');if(n)n.textContent=(b.dataset.name===name?'▶ ':'')+b.dataset.name.toUpperCase();}});document.getElementById('lockBtn').disabled=false;}
+function updateConf(v){state.confidence=parseInt(v);document.getElementById('confValue').textContent=CONF_LABELS[state.confidence];updateConfPulse(state.confidence);state.tension=Math.min(1,state.tension+0.07);updateTension(state.tension);setTension(state.tension);playTick();}
+function toggleClue(){state.showClue=!state.showClue;state.tension=Math.min(1,state.tension+0.07);updateTension(state.tension);document.getElementById('clueBox').classList.toggle('hidden',!state.showClue);document.getElementById('clueBtn').textContent=state.showClue?'▲ Hide clue':'🔍 Reveal psychological clue (free)';playTick();}
+function timeOut(){clearInterval(tensionInterval);storeResult({round:state.round,correct:false,confidence:0,selected:null,timedOut:true});state.submitted=true;document.getElementById('lockBtn').classList.add('hidden');document.getElementById('confBox').classList.add('hidden');showReveal(false,true);}
+function lockIn(){if(!state.selected||state.submitted)return;clearInterval(tensionInterval);clearInterval(clockInterval);playLockIn();const sc=state.scenarios[state.round];const correct=state.selected===sc.liar;storeResult({round:state.round,correct,confidence:state.confidence,selected:state.selected,timeLeft:state.timed?state.timeLeft:null});state.submitted=true;if(correct){state.streak++;if(state.timed){const spd=state.timeLeft>=20?20:state.timeLeft>=10?10:5,str=state.streak>=3?state.streak*5:0,tot=spd+str;if(tot>0){state.bonusPoints+=tot;const fl=document.getElementById('bonusFlash');fl.textContent=state.streak>=3?`🔥 STREAK x${state.streak}  +${tot}pts`:`⚡ FAST  +${tot}pts`;fl.style.color=state.streak>=3?C.red:C.teal;fl.style.background=`${state.streak>=3?C.red:C.teal}15`;fl.style.border=`1px solid ${state.streak>=3?C.red:C.teal}40`;fl.style.display='block';setTimeout(()=>fl.style.display='none',2000);}}}else state.streak=0;document.getElementById('lockBtn').classList.add('hidden');document.getElementById('confBox').classList.add('hidden');showReveal(correct,false);}
+function storeResult(r){if(state.mode==='multi'){if(state.currentPlayer===0)state.p1Results.push(r);else state.p2Results.push(r);}else state.results.push(r);}
+function showReveal(correct,timedOut){const sc=state.scenarios[state.round];const isVerdict=sc.verdicts&&sc.observations;document.querySelectorAll('.statement-btn').forEach(b=>{b.disabled=true;if(b.dataset.name===sc.liar){b.classList.add('is-liar');if(!isVerdict){const n=b.querySelector('.stmt-name');if(n)n.textContent='⚠ '+sc.liar.toUpperCase()+' — DECEIVER';}else{const t=b.querySelector('.stmt-text');if(t)t.innerHTML='⚠ '+sc.liar+' — CORRECT READ';}}});const rb=document.getElementById('revealBox');const col=correct?C.teal:C.red;rb.style.background=`${col}18`;rb.style.border=`2px solid ${col}`;document.getElementById('revealTitle').style.color=col;document.getElementById('revealTitle').textContent=timedOut?'⏱ TIME\'S UP — DECEIVED':correct?'✓ YOU SAW THROUGH IT':'✗ DECEIVED';document.getElementById('revealText').textContent=sc.explanation;rb.classList.remove('hidden');setTimeout(()=>{rb.classList.add('show');setTimeout(()=>playReveal(correct),200);},50);const nb=document.getElementById('nextBtn');nb.classList.remove('hidden');const isLast=state.round+1>=state.scenarios.length;if(state.mode==='multi'){nb.textContent=state.currentPlayer===0?'PASS TO '+state.playerNames[1]+' →':(isLast?'SEE RESULTS →':'NEXT →');}else nb.textContent=isLast?'SEE RESULTS →':'NEXT →';}
+function nextRound(){clearInterval(tensionInterval);clearInterval(clockInterval);if(state.mode==='multi'){if(state.currentPlayer===0){state.currentPlayer=1;showPassScreen();return;}else{if(state.round+1>=state.scenarios.length){showVsResults();return;}state.currentPlayer=0;state.round++;showPassScreen();return;}}if(state.round+1>=state.scenarios.length){finishGame();return;}state.round++;loadRound();}
+
+// ── Finish ──
+function finishGame(){
+  stopAmbient();
+  const profile=buildProfile(state.results);state.profile=profile;
+  if(state.mode==='level'){
+    const stars=calcStars(profile.correct,profile.total);
+    const progress=loadProgress();
+    const prev=progress.levels[state.levelId];
+    if(!prev||profile.iq>prev.diq){progress.levels[state.levelId]={stars:Math.max(stars,prev?prev.stars:0),diq:profile.iq,correct:profile.correct,total:profile.total};}
+    let unlocked=false;
+    if(state.levelId>=progress.unlocked&&state.levelId<LEVELS.length){progress.unlocked=state.levelId+1;unlocked=true;}
+    saveProgress(progress);
+    showLevelComplete(profile,stars,unlocked);
+  }else{
+    showLevelComplete(profile,calcStars(profile.correct,profile.total),false);
+  }
+}
+function showLevelComplete(profile,stars,unlocked){
+  const ic=iqColor(profile.iq);
+  document.getElementById('lcStars').innerHTML='★★★'.split('').map((s,i)=>i<stars?`<span style="color:${C.gold}">★</span>`:`<span style="color:${C.border}">★</span>`).join('');
+  document.getElementById('lcTitle').textContent=stars===3?'FLAWLESS':stars>=1?'LEVEL CLEARED':'TRY AGAIN';
+  document.getElementById('lcTitle').style.color=stars>=1?C.white:C.red;
+  document.getElementById('lcLevelName').textContent=state.levelMeta?state.levelMeta.name:(state.mode==='daily'?'Daily Challenge':'Quick Play');
+  const circle=document.getElementById('lcCircle');circle.style.borderColor=ic;circle.style.background=ic+'10';circle.style.boxShadow=`0 0 40px ${ic}30`;
+  document.getElementById('lcScoreNum').style.color=ic;document.getElementById('lcScoreNum').textContent=profile.iq;
+  document.getElementById('lcCorrect').textContent=`${profile.correct}/${profile.total}`;
+  document.getElementById('lcAccuracy').textContent=Math.round(profile.correct/profile.total*100)+'%';
+  const unlockBox=document.getElementById('lcUnlock');
+  const nextBtn=document.getElementById('lcNextBtn');
+  if(unlocked&&state.levelId<LEVELS.length){const nextLv=LEVELS.find(l=>l.id===state.levelId+1);unlockBox.classList.remove('hidden');document.getElementById('lcUnlockText').textContent=`Level ${nextLv.id}: ${nextLv.name}`;nextBtn.textContent='NEXT LEVEL →';nextBtn.classList.remove('hidden');}
+  else if(state.mode==='level'&&state.levelId<LEVELS.length){unlockBox.classList.add('hidden');nextBtn.textContent='NEXT LEVEL →';nextBtn.classList.remove('hidden');}
+  else{unlockBox.classList.add('hidden');nextBtn.classList.add('hidden');}
+  showScreen('levelcomplete-screen');
+  setTimeout(()=>{playProfileReveal();if(stars>=1)setTimeout(playLevelUp,400);setTimeout(()=>showNameModal(),700);},400);
+}
+function nextLevel(){if(state.levelId<LEVELS.length){startLevel(state.levelId+1);}else showLevelSelect();}
+// ── Name modal ──
+function showNameModal(){const p=state.profile;if(!p)return;const ic=iqColor(p.iq);const c=document.getElementById('modalCircle');c.style.borderColor=ic;c.style.background=ic+'10';document.getElementById('modalIQ').style.color=ic;document.getElementById('modalIQ').textContent=p.iq;document.getElementById('modalArchetype').textContent=p.archetype;document.getElementById('modalSub').textContent=`${p.correct} of ${p.total} correct — post to the board?`;document.getElementById('nameInput').value='';document.getElementById('nameModal').classList.remove('hidden');setTimeout(()=>document.getElementById('nameInput').focus(),100);}
+function submitName(){const name=document.getElementById('nameInput').value.trim();if(!name)return;const p=state.profile;const entry={name,diq:p.iq,archetype:p.archetype,correct:p.correct,total:p.total,level:state.levelMeta?state.levelMeta.name:'Quick',date:Date.now()};saveLB(entry);state.lastEntry=entry;document.getElementById('nameModal').classList.add('hidden');playLevelUp();}
+function skipName(){document.getElementById('nameModal').classList.add('hidden');}
+
+// ── VS Results ──
+function showVsResults(){stopAmbient();const p1=state.p1Results.filter(r=>r.correct).length,p2=state.p2Results.filter(r=>r.correct).length;const winner=p1>p2?0:p2>p1?1:-1;const wc=winner===-1?C.amber:P_COLORS[winner];const wb=document.getElementById('vsWinner');wb.style.background=`${wc}15`;wb.style.borderColor=wc;wb.innerHTML=winner===-1?`<div style="font-family:'Bebas Neue',Impact,sans-serif;font-size:48px;color:${C.amber};letter-spacing:2px">DRAW</div><div style="color:${C.muted};font-size:14px;margin-top:8px">Two equally suspicious minds.</div>`:`<div style="font-size:11px;letter-spacing:4px;color:${wc};font-weight:700;margin-bottom:8px">WINNER</div><div style="font-family:'Bebas Neue',Impact,sans-serif;font-size:52px;color:${wc};letter-spacing:2px">${state.playerNames[winner]}</div><div style="color:${C.muted};font-size:14px;margin-top:8px">${state.playerNames[winner===0?1:0]} got played. 🕵️</div>`;[0,1].forEach(p=>{const sc=p===0?p1:p2,color=P_COLORS[p],isW=winner===p;const card=document.getElementById(`vsP${p+1}Card`);card.style.borderColor=isW?color:C.border;card.innerHTML=`<div style="font-size:10px;letter-spacing:2px;color:${color};font-weight:700;margin-bottom:6px">P${p+1}</div><div style="color:${C.white};font-size:14px;font-weight:700;margin-bottom:8px">${state.playerNames[p]}</div><div style="font-family:'Bebas Neue',Impact,sans-serif;font-size:52px;color:${color};line-height:1">${sc}</div><div style="font-size:11px;color:${C.muted}">correct</div>`;});showScreen('vsresults-screen');}
+
+// ── Leaderboard ──
+function showLeaderboard(){const board=loadLB();const list=document.getElementById('lbList');list.innerHTML='';const medals=['🥇','🥈','🥉'];if(board.length===0){list.innerHTML='<div class="lb-empty"><div style="font-size:48px;margin-bottom:16px">🕵️</div><div style="color:'+C.muted+';font-size:15px">No scores yet. Be the first.</div></div>';}else{board.forEach((e,i)=>{const isMe=state.lastEntry&&e.name===state.lastEntry.name&&e.date===state.lastEntry.date;const ic=e.diq>=80?C.teal:e.diq>=60?C.amber:C.red;const rc=i<3?[C.gold,'#C0C0C0','#CD7F32'][i]:C.muted;const d=document.createElement('div');d.className='lb-entry'+(isMe?' highlight':'');d.innerHTML=`<div class="lb-rank" style="color:${rc}">${i<3?medals[i]:'#'+(i+1)}</div><div class="lb-info"><div class="lb-name-row"><span class="lb-name">${e.name}</span>${isMe?'<span class="you-badge">YOU</span>':''}</div><div class="lb-meta"><span>${ARCH_ICONS[e.archetype]||'🧠'} ${e.archetype}</span><span>·</span><span>${e.correct}/${e.total}</span>${e.level?'<span>·</span><span>'+e.level+'</span>':''}</div></div><div class="lb-diq"><div class="lb-diq-num" style="color:${ic}">${e.diq}</div><div class="lb-diq-label">DIQ</div></div>`;list.appendChild(d);});}showScreen('leaderboard-screen');}
+
+// ── Share card ──
+function showShareCard(){const p=state.profile;if(!p)return;document.getElementById('shareModal').classList.remove('hidden');const cv=document.getElementById('shareCanvas'),ctx=cv.getContext('2d'),W=540,H=960;cv.width=W;cv.height=H;const ic=iqColor(p.iq);ctx.fillStyle=C.bg;ctx.fillRect(0,0,W,H);ctx.strokeStyle=C.border;ctx.lineWidth=1;for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}const gr=ctx.createLinearGradient(0,0,W,0);gr.addColorStop(0,C.teal);gr.addColorStop(.5,C.amber);gr.addColorStop(1,C.red);ctx.fillStyle=gr;ctx.fillRect(0,0,W,5);ctx.fillStyle=C.white;ctx.font='bold 72px Impact,sans-serif';ctx.textAlign='center';ctx.fillText('DECEIVED',W/2,110);ctx.fillStyle=C.muted;ctx.font='600 13px Arial';ctx.fillText('SOCIAL INTELLIGENCE GAME',W/2,138);ctx.fillStyle=C.amber;ctx.fillRect(W/2-30,158,60,3);const cx=W/2,cy=300,r=100;ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fillStyle=ic+'18';ctx.fill();ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.strokeStyle=ic;ctx.lineWidth=6;ctx.stroke();ctx.fillStyle=ic;ctx.font='bold 80px Impact';ctx.fillText(p.iq,cx,cy+22);ctx.fillStyle=C.muted;ctx.font='700 11px Arial';ctx.fillText('DECEPTION IQ',cx,cy+48);ctx.fillStyle=C.white;ctx.font='bold 44px Impact';ctx.fillText((ARCH_ICONS[p.archetype]||'')+' '+p.archetype.toUpperCase(),cx,445);if(state.levelMeta){ctx.fillStyle=C.muted;ctx.font='600 16px Arial';ctx.fillText(state.levelMeta.name+' · '+p.correct+'/'+p.total+' correct',cx,478);}const sY=545,items=[{l:'CORRECT',v:`${p.correct}/${p.total}`},{l:'ACCURACY',v:`${Math.round(p.correct/p.total*100)}%`},{l:'DIQ',v:p.iq}];const cW=W/items.length;items.forEach((s,i)=>{const x=cW*i+cW/2;ctx.fillStyle=C.card;ctx.fillRect(cW*i+16,sY-34,cW-32,72);ctx.fillStyle=ic;ctx.font='bold 32px Impact';ctx.fillText(s.v,x,sY+4);ctx.fillStyle=C.muted;ctx.font='700 10px Arial';ctx.fillText(s.l,x,sY+24);});ctx.fillStyle=C.muted;ctx.font='400 14px Arial';const words=p.description.split(' ');let line='',ly=655;words.forEach(w=>{const t=line+w+' ';if(ctx.measureText(t).width>W-80&&line){ctx.fillText(line.trim(),cx,ly);line=w+' ';ly+=22;}else line=t;});ctx.fillText(line.trim(),cx,ly);ctx.fillStyle=C.panel;ctx.fillRect(0,H-130,W,130);ctx.fillStyle=gr;ctx.fillRect(0,H-130,W,2);ctx.fillStyle=C.amber;ctx.font='bold 26px Impact';ctx.fillText('CAN YOU SEE THROUGH THE LIE?',cx,H-85);ctx.fillStyle=C.muted;ctx.font='500 13px Arial';ctx.fillText('Play free at playdeceived.com',cx,H-55);ctx.fillStyle=C.white;ctx.font='700 11px Arial';ctx.fillText(`#Deceived  #DeceptionIQ  #${p.archetype.replace(/ /g,'')}`,cx,H-28);}
+function downloadCard(){const a=document.createElement('a');a.download=`deceived-${state.profile.archetype.replace(/ /g,'-').toLowerCase()}.png`;a.href=document.getElementById('shareCanvas').toDataURL('image/png');a.click();}
+
+// ── Init ──
+buildPulse('homePulse',20);buildPulse('confPulse',20);updateConfPulse(2);
