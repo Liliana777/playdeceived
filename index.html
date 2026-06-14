@@ -441,6 +441,62 @@ let state={mode:'level',soundOn:true,levelId:1,scenarios:[],round:0,selected:nul
 let tensionInterval=null,clockInterval=null,dailyInterval=null;
 let audioCtx=null,masterGain=null,tensionGain=null,ambientOscs=[];
 
+// ── Music layer (real audio files, /audio/*.mp3) ──
+// Files are OPTIONAL: if missing, the game falls back to the synth drone, so nothing breaks.
+const MUSIC = {
+  menu:  { src:'audio/theme-menu.mp3',  vol:0.45 },
+  1:     { src:'audio/theme-level1.mp3', vol:0.40 },
+  2:     { src:'audio/theme-level2.mp3', vol:0.42 },
+  3:     { src:'audio/theme-level3.mp3', vol:0.44 },
+  4:     { src:'audio/theme-level4.mp3', vol:0.46 },
+  5:     { src:'audio/theme-level5.mp3', vol:0.50 },
+};
+let musicEls={}, currentMusic=null, musicFailed={};
+function getMusicEl(key){
+  if(musicEls[key]) return musicEls[key];
+  const cfg=MUSIC[key]; if(!cfg) return null;
+  const a=new Audio(); a.src=cfg.src; a.loop=true; a.preload='none'; a.volume=0;
+  a.addEventListener('error',()=>{musicFailed[key]=true;});
+  musicEls[key]=a; return a;
+}
+function playMusic(key){
+  if(currentMusic===key) return;
+  const prev=currentMusic; currentMusic=key;
+  // fade out previous track
+  if(prev!=null && musicEls[prev]) fadeAudio(musicEls[prev],0,700,true);
+  const el=getMusicEl(key);
+  if(!el || musicFailed[key]){ // no file → ensure synth drone covers it
+    startAmbient(); return;
+  }
+  const targetVol=state.soundOn?(MUSIC[key].vol):0;
+  const p=el.play();
+  if(p&&p.catch) p.catch(()=>{ musicFailed[key]=true; startAmbient(); });
+  fadeAudio(el,targetVol,900,false);
+  // if a real track is playing, we don't need the loud synth drone — keep only the faint tension bed
+  if(!musicFailed[key]) softenSynthBed();
+}
+function stopMusic(){
+  if(currentMusic!=null && musicEls[currentMusic]) fadeAudio(musicEls[currentMusic],0,500,true);
+  currentMusic=null;
+}
+function fadeAudio(el,to,ms,pauseAtEnd){
+  if(!el) return;
+  const from=el.volume, steps=20, dt=ms/steps; let i=0;
+  if(el._fadeTimer) clearInterval(el._fadeTimer);
+  el._fadeTimer=setInterval(()=>{
+    i++; const v=from+(to-from)*(i/steps);
+    el.volume=Math.max(0,Math.min(1,v));
+    if(i>=steps){clearInterval(el._fadeTimer);el._fadeTimer=null;if(pauseAtEnd&&to===0){try{el.pause();}catch{}}}
+  },dt);
+}
+function setMusicVolume(on){
+  if(currentMusic!=null && musicEls[currentMusic] && !musicFailed[currentMusic]){
+    fadeAudio(musicEls[currentMusic], on?MUSIC[currentMusic].vol:0, 300, false);
+  }
+}
+// When real music is present, drop the synth drone way down so it only adds a faint sub-bass bed.
+function softenSynthBed(){ if(tensionGain&&audioCtx) tensionGain.gain.setTargetAtTime(0.012,audioCtx.currentTime,0.6); }
+
 // ── Progress ──
 function loadProgress(){try{return JSON.parse(localStorage.getItem(PROGRESS_KEY)||'{"levels":{},"unlocked":1}');}catch{return{levels:{},unlocked:1};}}
 function saveProgress(p){try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(p));}catch{}}
@@ -449,7 +505,7 @@ function saveLB(e){const b=[...loadLB(),e].sort((a,b)=>b.diq-a.diq).slice(0,50);
 
 // ── Screens ──
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));const s=document.getElementById(id);if(s){s.classList.add('active');window.scrollTo(0,0);}}
-function goHome(){stopAmbient();clearInterval(tensionInterval);clearInterval(clockInterval);showScreen('home-screen');}
+function goHome(){clearInterval(tensionInterval);clearInterval(clockInterval);playMusic('menu');showScreen('home-screen');}
 
 // ── Sound ──
 function getCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx;}
@@ -458,6 +514,9 @@ function stopAmbient(){ambientOscs.forEach(o=>{try{o.stop();}catch{}});ambientOs
 function setTension(l){if(!tensionGain||!audioCtx)return;tensionGain.gain.setTargetAtTime(0.03+0.25*l,audioCtx.currentTime,1.5);}
 function beep(f,v,d,t='sine'){if(!state.soundOn)return;const ctx=getCtx(),o=ctx.createOscillator(),g=ctx.createGain();o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+d);o.connect(g);g.connect(masterGain||ctx.destination);o.start();o.stop(ctx.currentTime+d);}
 function playTick(){beep(1200,0.08,0.06);}
+function playUIClick(){if(!state.soundOn)return;const ctx=getCtx(),dest=masterGain||ctx.destination;const o=ctx.createOscillator(),g=ctx.createGain();o.type='triangle';o.frequency.setValueAtTime(660,ctx.currentTime);o.frequency.exponentialRampToValueAtTime(330,ctx.currentTime+0.07);g.gain.setValueAtTime(0.12,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.09);o.connect(g);g.connect(dest);o.start();o.stop(ctx.currentTime+0.1);
+// faint click body
+const n=ctx.createBufferSource(),nb=ctx.createBuffer(1,ctx.sampleRate*0.03,ctx.sampleRate),nd=nb.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=(Math.random()*2-1)*Math.exp(-i/(ctx.sampleRate*0.008));const ng=ctx.createGain();ng.gain.value=0.15;n.buffer=nb;n.connect(ng);ng.connect(dest);n.start();}
 function playLockIn(){if(!state.soundOn)return;const ctx=getCtx(),buf=ctx.createBuffer(1,ctx.sampleRate*0.3,ctx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(ctx.sampleRate*0.05));const s=ctx.createBufferSource(),g=ctx.createGain();s.buffer=buf;g.gain.value=0.5;s.connect(g);g.connect(masterGain||ctx.destination);s.start();if(tensionGain)tensionGain.gain.setTargetAtTime(0.01,ctx.currentTime+0.05,0.2);}
 function playReveal(ok){if(!state.soundOn)return;const ctx=getCtx(),dest=masterGain||ctx.destination;(ok?[523,659,784]:[220,196,165]).forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime+i*(ok?0.12:0.15);o.type=ok?'sine':'sawtooth';o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(ok?0.18:0.2,t+0.05);g.gain.exponentialRampToValueAtTime(0.001,t+0.55);o.connect(g);g.connect(dest);o.start(t);o.stop(t+0.6);});}
 function playProfileReveal(){if(!state.soundOn)return;const ctx=getCtx(),dest=masterGain||ctx.destination,o=ctx.createOscillator(),g=ctx.createGain(),f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=400;f.Q.value=2;o.type='sawtooth';o.frequency.setValueAtTime(80,ctx.currentTime);o.frequency.linearRampToValueAtTime(320,ctx.currentTime+1.8);g.gain.setValueAtTime(0,ctx.currentTime);g.gain.linearRampToValueAtTime(0.3,ctx.currentTime+0.3);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+2.2);o.connect(f);f.connect(g);g.connect(dest);o.start();o.stop(ctx.currentTime+2.2);}
@@ -468,7 +527,7 @@ function playTimeUp(){if(!state.soundOn)return;const ctx=getCtx(),dest=masterGai
 function buildPulse(id,n){const w=document.getElementById(id);if(!w)return;const cols=[C.teal,C.teal,C.teal,C.teal,C.teal,C.teal,C.teal,C.amber,C.amber,C.amber,C.amber,C.amber,C.amber,C.red,C.red,C.red,C.red,C.red,C.red,C.red];w.innerHTML='';for(let i=0;i<n;i++){const b=document.createElement('div');b.className='pulse-bar';b.style.height=(8+Math.sin(i*0.8)*8+Math.random()*4)+'px';b.style.background=cols[i%cols.length];b.style.opacity='0.8';w.appendChild(b);}}
 function updateConfPulse(v){document.querySelectorAll('#confPulse .pulse-bar').forEach((b,i)=>{const lit=(i/20)*4<=v,col=i<7?C.teal:i<14?C.amber:C.red;b.style.height=lit?(16+Math.sin(i*0.8)*8)+'px':'6px';b.style.background=lit?col:C.border;b.style.opacity=lit?'1':'0.3';});}
 
-function toggleSound(){state.soundOn=!state.soundOn;const ic=state.soundOn?'🔊':'🔇';document.getElementById('soundBtn').textContent=ic;document.getElementById('gameSoundBtn').textContent=ic;document.getElementById('soundLabel').textContent='LIE DETECTOR CALIBRATING · SOUND '+(state.soundOn?'ON':'OFF');if(masterGain&&audioCtx)masterGain.gain.setTargetAtTime(state.soundOn?1:0,audioCtx.currentTime,0.3);}
+function toggleSound(){state.soundOn=!state.soundOn;const ic=state.soundOn?'🔊':'🔇';document.getElementById('soundBtn').textContent=ic;document.getElementById('gameSoundBtn').textContent=ic;document.getElementById('soundLabel').textContent='LIE DETECTOR CALIBRATING · SOUND '+(state.soundOn?'ON':'OFF');if(masterGain&&audioCtx)masterGain.gain.setTargetAtTime(state.soundOn?1:0,audioCtx.currentTime,0.3);setMusicVolume(state.soundOn);}
 
 // ── Profile ──
 function buildProfile(results){const correct=results.filter(r=>r.correct).length;const oc=results.filter(r=>!r.correct&&r.confidence>=3).length;const uc=results.filter(r=>r.correct&&r.confidence<=1).length;const iq=Math.min(100,Math.max(20,Math.round((correct/results.length)*100-oc*8+uc*3)+40));let archetype,description,blindspot;if(iq>=85){archetype='The Interrogator';description='You read people like open books. You catch micro-signals others miss entirely.';blindspot='You trust your gut so much you sometimes ignore contradicting evidence.';}else if(iq>=70){archetype='The Detective';description='Methodical and sharp. You look for inconsistencies before making a call.';blindspot='Emotional manipulation occasionally slips past your logic-first radar.';}else if(iq>=55){archetype='The Analyst';description='You notice patterns but hesitate to commit. Your instincts are good — trust them more.';blindspot='Overthinking under pressure leads you to second-guess correct first reads.';}else{archetype='The Empath';description='You want to believe people — which makes you unusually good at detecting real distress.';blindspot='Skilled liars who appeal to emotion consistently get past your defenses.';}return{iq,archetype,description,blindspot,correct,total:results.length};}
@@ -572,20 +631,20 @@ function beginLevel(id){
   state.mode='level';state.levelId=id;state.levelMeta=lv;state.timed=false;
   state.scenarios=[...lv.scenarios];
   state.round=0;state.results=[];state.streak=0;state.bonusPoints=0;
-  startAmbient();loadRound();showScreen('game-screen');
+  startAmbient();playMusic(id);loadRound();showScreen('game-screen');
 }
 function startDaily(){
   state.mode='daily';state.timed=false;state.levelMeta={name:'Daily Challenge',color:C.purple,difficulty:'Daily'};
   state.scenarios=getDailyScenarios();
   state.round=0;state.results=[];state.streak=0;state.bonusPoints=0;
-  startAmbient();loadRound();showScreen('game-screen');
+  startAmbient();playMusic(3);loadRound();showScreen('game-screen');
 }
 function startQuick(mode){
   state.mode='quick';state.timed=(mode==='timed');state.levelMeta=null;
   const all=[];LEVELS.forEach(l=>l.scenarios.forEach(s=>all.push(s)));
   state.scenarios=[...all].sort(()=>Math.random()-0.5).slice(0,5);
   state.round=0;state.results=[];state.streak=0;state.bonusPoints=0;
-  startAmbient();loadRound();showScreen('game-screen');
+  startAmbient();playMusic(5);loadRound();showScreen('game-screen');
 }
 function startMulti(){
   state.playerNames=[document.getElementById('p1name').value||'Player 1',document.getElementById('p2name').value||'Player 2'];
@@ -593,7 +652,7 @@ function startMulti(){
   const all=[];LEVELS.forEach(l=>l.scenarios.forEach(s=>all.push(s)));
   state.scenarios=[...all].sort(()=>Math.random()-0.5).slice(0,5);
   state.round=0;state.results=[];state.p1Results=[];state.p2Results=[];state.currentPlayer=0;state.streak=0;
-  startAmbient();showPassScreen();
+  startAmbient();playMusic(4);showPassScreen();
 }
 function showPassScreen(){const p=state.currentPlayer,color=P_COLORS[p];const ic=document.getElementById('passIcon');ic.style.background=color+'22';ic.style.border=`4px solid ${color}`;ic.textContent=p===0?'👤':'👥';document.getElementById('passLabel').style.color=color;document.getElementById('passLabel').textContent=`PLAYER ${p+1}`;document.getElementById('passName').textContent=state.playerNames[p];showScreen('pass-screen');}
 function readyPass(){loadRound();showScreen('game-screen');}
@@ -696,6 +755,20 @@ function downloadCard(){const a=document.createElement('a');a.download=`deceived
 
 // ── Init ──
 buildPulse('homePulse',20);buildPulse('confPulse',20);updateConfPulse(2);
+
+// Global UI click sound on every button (delegated; capture phase so it fires before handlers).
+document.addEventListener('click',function(e){
+  const b=e.target.closest('button,.mode-card,.big-btn,.lb-btn,.daily-card,.level-card');
+  if(b && state.soundOn) playUIClick();
+},true);
+
+// Browsers block audio until the first user gesture. Kick off menu music on the first click.
+let _musicArmed=false;
+document.addEventListener('click',function(){
+  if(_musicArmed) return; _musicArmed=true;
+  getCtx(); // unlock WebAudio
+  if(currentMusic==null) playMusic('menu');
+},{once:false});
 
 </script>
 </body>
