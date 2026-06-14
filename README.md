@@ -1,65 +1,48 @@
-[README.md](https://github.com/user-attachments/files/28866971/README.md)
-# DECEIVED — Deploy Package
+# DECEIVED — Audio Tracks
 
-## Files
-```
-index.html          ← Landing page (root of site)
-game/index.html     ← Full game (compiled, no build needed)
-vercel.json         ← Routing + security headers
-README.md           ← This file
-```
+The game looks for **six music files** in this `audio/` folder. Drop them in with the
+**exact filenames** below. If a file is missing, that level just falls back to the
+built-in synth drone — nothing breaks — so you can add them one at a time.
 
-## Deploy in 10 minutes — Step by Step
+| Filename            | Where it plays            | Vibe to look for                                  |
+|---------------------|---------------------------|---------------------------------------------------|
+| `theme-menu.mp3`    | Home / menu screen        | Cool, watchful, low pulse. "Lie detector idling." |
+| `theme-level1.mp3`  | Level 1 — The Rookie      | Light unease. Curious, not yet scary.             |
+| `theme-level2.mp3`  | Level 2 — The Investigator| Growing tension. A touch of dread.                |
+| `theme-level3.mp3`  | Level 3 — The Detective   | Cold, methodical, noir interrogation room.        |
+| `theme-level4.mp3`  | Level 4 — The Profiler    | Predatory, clinical, getting under your skin.     |
+| `theme-level5.mp3`  | Level 5 — The Interrogator| Full Twilight-Zone dread. Smiling-liar menace.    |
 
-### Step 1: Create GitHub repo
-1. Go to github.com → click "+" → "New repository"
-2. Name it: `playdeceived`
-3. Set to **Public**
-4. Click "Create repository"
+(Daily uses the Level 3 theme; Quick Timed uses Level 5; Local VS uses Level 4.)
 
-### Step 2: Upload files
-1. In your new repo, click "uploading an existing file"
-2. Drag ALL files from this folder into the upload area:
-   - index.html
-   - vercel.json
-   - README.md
-   - The entire `game/` folder
-3. Click "Commit changes"
+## Where to get royalty-free tracks (no attribution headaches)
 
-### Step 3: Deploy on Vercel
-1. Go to vercel.com → Sign in with GitHub
-2. Click "Add New Project"
-3. Find `playdeceived` repo → click "Import"
-4. Leave ALL settings as default
-5. Click "Deploy"
-6. Wait ~60 seconds → you'll get a URL like `playdeceived.vercel.app`
-7. Click it — your game is live!
+**Pixabay Music** — https://pixabay.com/music/  (free, no attribution required — easiest)
+Search: `dark ambient`, `suspense tension`, `horror underscore`, `interrogation`,
+`ominous drone`, `creepy heartbeat`.
 
-### Step 4: Add your custom domain
-1. Buy domain at namecheap.com or godaddy.com:
-   - `playdeceived.com` (~$12/year) ← recommended
-   - `playdeceived.game` (~$20/year)
-2. In Vercel: go to your project → Settings → Domains
-3. Type your domain → click "Add"
-4. Vercel shows you DNS records to add
-5. Go to your domain registrar → DNS settings → add those records
-6. Wait 5–30 minutes → domain goes live
+**Freesound** — https://freesound.org/  (filter license to **Creative Commons 0**)
+Great for loopable ambient beds and one-shots.
 
-### That's it. Your game is published. 🎯
+**Incompetech (Kevin MacLeod)** — https://incompetech.com/music/royalty-free/
+Browse the **Horror** and **Suspense** categories. Attribution required but simple
+(one credit line in your README or About screen).
 
----
+## How to add them
 
-## TikTok strategy for launch
-- Record yourself playing and getting your archetype result
-- Show the share card being downloaded
-- Caption: "I got [archetype] — what are you? playdeceived.com"
-- Tag: #DeceptionIQ #Deceived #[YourArchetype]
-- Post 3–5x per day for the first week
-- Reply to every comment with a challenge
+1. Download each track as `.mp3`.
+2. Rename it to the exact filename in the table above.
+3. Put all six in this `audio/` folder.
+4. Commit the `audio/` folder to your GitHub repo (same level as `index.html`).
+5. Hard-refresh the site (Ctrl/Cmd+Shift+R).
 
-## Monetization options (when you have traffic)
-- Waitlist email capture → newsletter monetization
-- "Pro" mode with more scenario types ($2.99/mo)
-- Sponsored scenario categories (brands pay to be featured)
-- Affiliate links in share cards
-- Merchandise (archetype hoodies, stickers)
+## Tips
+
+- **Loopable tracks** sound best (they repeat seamlessly under gameplay). Pixabay
+  often labels these "loop."
+- Keep files reasonably small (1–3 MB each) so the page loads fast. A 1–2 minute
+  loop at 128 kbps is plenty.
+- Volume is balanced in code per track; if one feels too loud/quiet, tell me and
+  I'll tweak its `vol` value in the `MUSIC` config inside `index.html`.
+- Sound effects (clicks, lock-in, correct/wrong stings, level-up) are all
+  synthesized in-browser — you don't need files for those.
