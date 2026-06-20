@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════
-//  DECEIVED — Scenario Bank · 107 scenarios across 5 levels
+//  DECEIVED — Scenario Bank · 157 scenarios across 5 levels
 //  Verdict scenarios: {observations:[], verdicts:[], liar}
 //  Statement scenarios: {statements:[{name,text}], liar}
 // ══════════════════════════════════════════════════════════════

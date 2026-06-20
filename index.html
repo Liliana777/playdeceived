@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="description" content="DECEIVED — The social intelligence game. Can you spot the lie?"/>
 <meta property="og:title" content="DECEIVED — What's your Deception IQ?"/>
-<meta property="og:description" content="5 levels. 57 scenarios. Daily challenges. Can you spot the lie?"/>
+<meta property="og:description" content="5 levels. 157 scenarios. Daily challenges. Can you spot the lie?"/>
 <meta name="theme-color" content="#0A0C12"/>
 <title>DECEIVED — Play</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
@@ -204,7 +204,7 @@ html,body{min-height:100%;background:#0A0C12;color:#F0F2F8;font-family:'Inter',s
   <div class="logo">DECEIVED</div>
   <div class="divider"></div>
   <p class="hero-sub">Lies. Body language. AI impostors. Buried truth.<br>
-  5 levels. 57 scenarios. A new daily challenge every day.<br><br>
+  5 levels. 157 scenarios. A new daily challenge every day.<br><br>
   <strong>Can you spot the lie?</strong></p>
   <div class="pulse-row">
     <div class="pulse-wrap" id="homePulse"></div>
@@ -527,7 +527,36 @@ function playTimeUp(){if(!state.soundOn)return;const ctx=getCtx(),dest=masterGai
 function buildPulse(id,n){const w=document.getElementById(id);if(!w)return;const cols=[C.teal,C.teal,C.teal,C.teal,C.teal,C.teal,C.teal,C.amber,C.amber,C.amber,C.amber,C.amber,C.amber,C.red,C.red,C.red,C.red,C.red,C.red,C.red];w.innerHTML='';for(let i=0;i<n;i++){const b=document.createElement('div');b.className='pulse-bar';b.style.height=(8+Math.sin(i*0.8)*8+Math.random()*4)+'px';b.style.background=cols[i%cols.length];b.style.opacity='0.8';w.appendChild(b);}}
 function updateConfPulse(v){document.querySelectorAll('#confPulse .pulse-bar').forEach((b,i)=>{const lit=(i/20)*4<=v,col=i<7?C.teal:i<14?C.amber:C.red;b.style.height=lit?(16+Math.sin(i*0.8)*8)+'px':'6px';b.style.background=lit?col:C.border;b.style.opacity=lit?'1':'0.3';});}
 
-function toggleSound(){state.soundOn=!state.soundOn;const ic=state.soundOn?'🔊':'🔇';document.getElementById('soundBtn').textContent=ic;document.getElementById('gameSoundBtn').textContent=ic;document.getElementById('soundLabel').textContent='LIE DETECTOR CALIBRATING · SOUND '+(state.soundOn?'ON':'OFF');if(masterGain&&audioCtx)masterGain.gain.setTargetAtTime(state.soundOn?1:0,audioCtx.currentTime,0.3);setMusicVolume(state.soundOn);}
+function toggleSound(){state.soundOn=!state.soundOn;const ic=state.soundOn?'🔊':'🔇';document.getElementById('soundBtn').textContent=ic;document.getElementById('gameSoundBtn').textContent=ic;document.getElementById('soundLabel').textContent='LIE DETECTOR CALIBRATING · SOUND '+(state.soundOn?'ON':'OFF');if(masterGain&&audioCtx)masterGain.gain.setTargetAtTime(state.soundOn?1:0,audioCtx.currentTime,0.3);setMusicVolume(state.soundOn);if(!state.soundOn)stopNarration();}
+// ── Interstitial quote narration (browser voice) ──
+let _ttsVoice=null;
+function pickNarrationVoice(){
+  if(!('speechSynthesis' in window))return null;
+  const vs=window.speechSynthesis.getVoices();
+  if(!vs.length)return null;
+  const en=vs.filter(v=>/en[-_]/i.test(v.lang));
+  const pool=en.length?en:vs;
+  // Prefer a deeper/male-sounding voice for the ominous tone, by common name hints
+  const pref=pool.find(v=>/(daniel|david|alex|fred|google uk english male|male)/i.test(v.name));
+  return pref||pool[0];
+}
+if('speechSynthesis' in window){
+  pickNarrationVoice();
+  window.speechSynthesis.onvoiceschanged=()=>{_ttsVoice=pickNarrationVoice();};
+}
+function stopNarration(){ if('speechSynthesis' in window) window.speechSynthesis.cancel(); }
+function narrateQuote(text){
+  if(!state.soundOn)return;
+  if(!('speechSynthesis' in window))return;
+  try{
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    if(!_ttsVoice)_ttsVoice=pickNarrationVoice();
+    if(_ttsVoice)u.voice=_ttsVoice;
+    u.rate=0.9; u.pitch=0.8; u.volume=0.9;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
 
 // ── Profile ──
 function buildProfile(results){const correct=results.filter(r=>r.correct).length;const oc=results.filter(r=>!r.correct&&r.confidence>=3).length;const uc=results.filter(r=>r.correct&&r.confidence<=1).length;const iq=Math.min(100,Math.max(20,Math.round((correct/results.length)*100-oc*8+uc*3)+40));let archetype,description,blindspot;if(iq>=85){archetype='The Interrogator';description='You read people like open books. You catch micro-signals others miss entirely.';blindspot='You trust your gut so much you sometimes ignore contradicting evidence.';}else if(iq>=70){archetype='The Detective';description='Methodical and sharp. You look for inconsistencies before making a call.';blindspot='Emotional manipulation occasionally slips past your logic-first radar.';}else if(iq>=55){archetype='The Analyst';description='You notice patterns but hesitate to commit. Your instincts are good — trust them more.';blindspot='Overthinking under pressure leads you to second-guess correct first reads.';}else{archetype='The Empath';description='You want to believe people — which makes you unusually good at detecting real distress.';blindspot='Skilled liars who appeal to emotion consistently get past your defenses.';}return{iq,archetype,description,blindspot,correct,total:results.length};}
@@ -564,6 +593,7 @@ function showInterstitial(levelId, onEnter){
   const data=INTERSTITIALS[levelId]||INTERSTITIALS[1];
   document.getElementById('interCaseHeader').innerHTML=`CASE FILE #${String(levelId).padStart(3,'0')} · CLEARANCE GRANTED · DECRYPTING<span class="blink">_</span>`;
   document.getElementById('interQuote').textContent='"'+data.quote+'"';
+  setTimeout(()=>narrateQuote(data.quote),700);
   document.getElementById('interLrNumber').textContent='LEVEL '+levelId;
   document.getElementById('interLrNumber').style.color=lv.color;
   document.getElementById('interLrName').textContent=lv.name.toUpperCase();
@@ -572,7 +602,7 @@ function showInterstitial(levelId, onEnter){
   document.querySelector('.classified-stamp').style.color=data.color;
   // Re-trigger animations
   document.querySelectorAll('#interstitial-screen .classified-stamp,#interstitial-screen .case-header,#interstitial-screen .polygraph,#interstitial-screen .quote-block,#interstitial-screen .level-reveal,#interstitial-screen .enter-btn').forEach(n=>{n.style.animation='none';n.offsetHeight;n.style.animation='';});
-  const go=()=>{onEnter();};
+  const go=()=>{stopNarration();onEnter();};
   document.getElementById('interEnterBtn').onclick=go;
   document.getElementById('interSkip').onclick=go;
   showScreen('interstitial-screen');
@@ -610,7 +640,7 @@ function showLevelSelect(){
         </div>
       </div>
       <div class="level-right">
-        ${locked?'<div class="level-lock-icon">🔒</div>':`<div class="level-count">${lv.scenarios.length}</div><div style="font-size:9px;color:${C.muted};letter-spacing:1px">ROUNDS</div>`}
+        ${locked?'<div class="level-lock-icon">🔒</div>':`<div class="level-count">${Math.min(15,lv.scenarios.length)}</div><div style="font-size:9px;color:${C.muted};letter-spacing:1px">ROUNDS</div>`}
       </div>`;
     if(!locked)card.onclick=()=>startLevel(lv.id);
     list.appendChild(card);
@@ -629,7 +659,7 @@ function startLevel(id){
 function beginLevel(id){
   const lv=LEVELS.find(l=>l.id===id);if(!lv)return;
   state.mode='level';state.levelId=id;state.levelMeta=lv;state.timed=false;
-  state.scenarios=[...lv.scenarios];
+  state.scenarios=[...lv.scenarios].sort(()=>Math.random()-0.5).slice(0,15);
   state.round=0;state.results=[];state.streak=0;state.bonusPoints=0;
   startAmbient();playMusic(id);loadRound();showScreen('game-screen');
 }
